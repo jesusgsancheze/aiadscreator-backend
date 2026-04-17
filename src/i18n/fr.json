@@ -1,0 +1,31 @@
+{
+  "auth": {
+    "registerSuccess": "Inscription r\u00e9ussie. Veuillez v\u00e9rifier votre e-mail pour confirmer votre compte.",
+    "loginSuccess": "Connexion r\u00e9ussie.",
+    "emailNotVerified": "Veuillez v\u00e9rifier votre e-mail avant de vous connecter.",
+    "invalidCredentials": "E-mail ou mot de passe invalide.",
+    "emailVerified": "E-mail v\u00e9rifi\u00e9 avec succ\u00e8s. Vous pouvez maintenant vous connecter.",
+    "verificationExpired": "Le lien de v\u00e9rification a expir\u00e9. Veuillez en demander un nouveau.",
+    "verificationSent": "E-mail de v\u00e9rification envoy\u00e9."
+  },
+  "campaigns": {
+    "created": "Campagne cr\u00e9\u00e9e avec succ\u00e8s.",
+    "generating": "G\u00e9n\u00e9ration de contenu IA en cours...",
+    "generated": "Contenu de campagne g\u00e9n\u00e9r\u00e9 avec succ\u00e8s.",
+    "generationFailed": "La g\u00e9n\u00e9ration de contenu a \u00e9chou\u00e9. Veuillez r\u00e9essayer.",
+    "notFound": "Campagne introuvable.",
+    "deleted": "Campagne supprim\u00e9e."
+  },
+  "clients": {
+    "created": "Client cr\u00e9\u00e9 avec succ\u00e8s.",
+    "updated": "Client mis \u00e0 jour avec succ\u00e8s.",
+    "deleted": "Client supprim\u00e9.",
+    "notFound": "Client introuvable."
+  },
+  "common": {
+    "unauthorized": "Acc\u00e8s non autoris\u00e9.",
+    "forbidden": "Vous n'avez pas la permission d'effectuer cette action.",
+    "notFound": "Ressource introuvable.",
+    "serverError": "Une erreur inattendue s'est produite."
+  }
+}

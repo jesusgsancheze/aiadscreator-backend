@@ -1,0 +1,31 @@
+{
+  "auth": {
+    "registerSuccess": "Registration successful. Please check your email to verify your account.",
+    "loginSuccess": "Login successful.",
+    "emailNotVerified": "Please verify your email before logging in.",
+    "invalidCredentials": "Invalid email or password.",
+    "emailVerified": "Email verified successfully. You can now log in.",
+    "verificationExpired": "Verification link has expired. Please request a new one.",
+    "verificationSent": "Verification email sent."
+  },
+  "campaigns": {
+    "created": "Campaign created successfully.",
+    "generating": "AI content generation in progress...",
+    "generated": "Campaign content generated successfully.",
+    "generationFailed": "Content generation failed. Please try again.",
+    "notFound": "Campaign not found.",
+    "deleted": "Campaign deleted."
+  },
+  "clients": {
+    "created": "Client created successfully.",
+    "updated": "Client updated successfully.",
+    "deleted": "Client deleted.",
+    "notFound": "Client not found."
+  },
+  "common": {
+    "unauthorized": "Unauthorized access.",
+    "forbidden": "You do not have permission to perform this action.",
+    "notFound": "Resource not found.",
+    "serverError": "An unexpected error occurred."
+  }
+}

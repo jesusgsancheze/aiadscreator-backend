@@ -1,0 +1,31 @@
+{
+  "auth": {
+    "registerSuccess": "Registro exitoso. Por favor revisa tu correo electr\u00f3nico para verificar tu cuenta.",
+    "loginSuccess": "Inicio de sesi\u00f3n exitoso.",
+    "emailNotVerified": "Por favor verifica tu correo electr\u00f3nico antes de iniciar sesi\u00f3n.",
+    "invalidCredentials": "Correo electr\u00f3nico o contrase\u00f1a inv\u00e1lidos.",
+    "emailVerified": "Correo electr\u00f3nico verificado exitosamente. Ya puedes iniciar sesi\u00f3n.",
+    "verificationExpired": "El enlace de verificaci\u00f3n ha expirado. Por favor solicita uno nuevo.",
+    "verificationSent": "Correo de verificaci\u00f3n enviado."
+  },
+  "campaigns": {
+    "created": "Campa\u00f1a creada exitosamente.",
+    "generating": "Generaci\u00f3n de contenido con IA en progreso...",
+    "generated": "Contenido de campa\u00f1a generado exitosamente.",
+    "generationFailed": "La generaci\u00f3n de contenido fall\u00f3. Por favor int\u00e9ntalo de nuevo.",
+    "notFound": "Campa\u00f1a no encontrada.",
+    "deleted": "Campa\u00f1a eliminada."
+  },
+  "clients": {
+    "created": "Cliente creado exitosamente.",
+    "updated": "Cliente actualizado exitosamente.",
+    "deleted": "Cliente eliminado.",
+    "notFound": "Cliente no encontrado."
+  },
+  "common": {
+    "unauthorized": "Acceso no autorizado.",
+    "forbidden": "No tienes permiso para realizar esta acci\u00f3n.",
+    "notFound": "Recurso no encontrado.",
+    "serverError": "Ocurri\u00f3 un error inesperado."
+  }
+}
