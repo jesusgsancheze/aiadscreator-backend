@@ -87,38 +87,26 @@ export class AuthService {
   }
 
   async verifyEmail(token: string) {
-    const user = await this.usersService.findByEmail('').catch(() => null);
-    // Find user by verification token through the model
-    const { Model } = require('mongoose');
-    // We need to access the model directly - use a workaround via usersService
-    const allUsers = await this.findUserByVerificationToken(token);
-    if (!allUsers) {
+    const user = await this.usersService.findByVerificationToken(token);
+    if (!user) {
       throw new BadRequestException('Invalid verification token.');
     }
 
     if (
-      allUsers.emailVerificationExpires &&
-      allUsers.emailVerificationExpires < new Date()
+      user.emailVerificationExpires &&
+      user.emailVerificationExpires < new Date()
     ) {
       throw new BadRequestException(
         'Verification link has expired. Please request a new one.',
       );
     }
 
-    allUsers.isEmailVerified = true;
-    allUsers.emailVerificationToken = null;
-    allUsers.emailVerificationExpires = null;
-    await allUsers.save();
+    user.isEmailVerified = true;
+    user.emailVerificationToken = null;
+    user.emailVerificationExpires = null;
+    await user.save();
 
     return { message: 'Email verified successfully. You can now log in.' };
-  }
-
-  private async findUserByVerificationToken(token: string) {
-    // Access the user model through the users service's model
-    const user = await (this.usersService as any).userModel
-      .findOne({ emailVerificationToken: token })
-      .exec();
-    return user;
   }
 
   async resendVerification(email: string) {

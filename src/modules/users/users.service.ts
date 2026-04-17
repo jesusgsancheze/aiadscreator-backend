@@ -38,6 +38,10 @@ export class UsersService {
       .exec();
   }
 
+  async findByVerificationToken(token: string): Promise<UserDocument | null> {
+    return this.userModel.findOne({ emailVerificationToken: token }).exec();
+  }
+
   async update(userId: string, dto: UpdateUserDto): Promise<UserDocument | null> {
     return this.userModel
       .findByIdAndUpdate(userId, dto, { new: true })
