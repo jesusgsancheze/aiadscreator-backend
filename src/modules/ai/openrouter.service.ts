@@ -103,6 +103,122 @@ export class OpenRouterService {
     return result;
   }
 
+  // --- Text refinement ---
+
+  async refineCopy(
+    currentCopy: string,
+    instructions: string,
+    context: { socialMedia: string; clientName: string; clientDescription: string; campaignDescription: string },
+  ): Promise<string> {
+    const systemPrompt = `You are an expert advertising copywriter. You are refining existing advertising copy for ${context.socialMedia}. The client is "${context.clientName}" — ${context.clientDescription}. The campaign is about: ${context.campaignDescription}. Return ONLY the refined copy text, no explanations.`;
+    const userPrompt = `Here is the current copy:\n\n${currentCopy}\n\nPlease refine it with these instructions:\n${instructions}`;
+    const result = await this.chatCompletion(this.textModel, systemPrompt, userPrompt);
+    this.logger.log('Copy refined successfully via OpenRouter');
+    return result;
+  }
+
+  async refineCaption(
+    currentCaption: string,
+    instructions: string,
+    context: { socialMedia: string; clientName: string; clientDescription: string; campaignDescription: string },
+  ): Promise<string> {
+    const systemPrompt = `You are an expert social media strategist. You are refining an existing caption for ${context.socialMedia}. The client is "${context.clientName}" — ${context.clientDescription}. The campaign is about: ${context.campaignDescription}. Return ONLY the refined caption text, no explanations.`;
+    const userPrompt = `Here is the current caption:\n\n${currentCaption}\n\nPlease refine it with these instructions:\n${instructions}`;
+    const result = await this.chatCompletion(this.textModel, systemPrompt, userPrompt);
+    this.logger.log('Caption refined successfully via OpenRouter');
+    return result;
+  }
+
+  async generateSingleImage(
+    imagePrompt: string,
+    variationInstructions: string,
+    productImagePath: string,
+  ): Promise<string | null> {
+    const absoluteProductPath = path.join(process.cwd(), productImagePath);
+    let productImagePart: any = null;
+
+    if (fs.existsSync(absoluteProductPath)) {
+      const imageBuffer = fs.readFileSync(absoluteProductPath);
+      const base64 = imageBuffer.toString('base64');
+      const ext = path.extname(absoluteProductPath).toLowerCase();
+      let mime = 'image/jpeg';
+      if (ext === '.png') mime = 'image/png';
+      else if (ext === '.webp') mime = 'image/webp';
+      productImagePart = {
+        type: 'image_url',
+        image_url: { url: `data:${mime};base64,${base64}` },
+      };
+    }
+
+    try {
+      const fullPrompt = `Generate a high-quality, professional advertising image based on this description:\n\n${imagePrompt}\n\nVariation style: ${variationInstructions}`;
+
+      const userContent: any[] = [{ type: 'text', text: fullPrompt }];
+      if (productImagePart) {
+        userContent.push(productImagePart);
+      }
+
+      const response = await axios.post(
+        OPENROUTER_API_URL,
+        {
+          model: this.imageModel,
+          messages: [
+            {
+              role: 'user',
+              content: userContent,
+            },
+          ],
+          modalities: ['image', 'text'],
+          max_tokens: 4096,
+        },
+        { headers: this.headers },
+      );
+
+      const message = response.data?.choices?.[0]?.message;
+      if (!message) {
+        this.logger.warn('No message in response for single image generation');
+        return null;
+      }
+
+      if (message.images && Array.isArray(message.images)) {
+        for (const img of message.images) {
+          const url = img?.image_url?.url;
+          if (url) {
+            return await this.saveImageFromDataUrl(url, 'single');
+          }
+        }
+      }
+
+      if (Array.isArray(message.content)) {
+        for (const part of message.content) {
+          if (part.type === 'image_url' && part.image_url?.url) {
+            return await this.saveImageFromDataUrl(part.image_url.url, 'single');
+          }
+        }
+      }
+
+      if (typeof message.content === 'string') {
+        const base64Match = message.content.match(
+          /data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)/,
+        );
+        if (base64Match) {
+          const filename = `${uuidv4()}-single.png`;
+          const filePath = path.join(this.uploadsDir, filename);
+          fs.writeFileSync(filePath, Buffer.from(base64Match[2], 'base64'));
+          return `uploads/${filename}`;
+        }
+      }
+
+      this.logger.warn('No image data in response for single image generation');
+      return null;
+    } catch (error) {
+      this.logger.error(
+        `Failed to generate single image: ${error.response?.data?.error?.message || error.message}`,
+      );
+      return null;
+    }
+  }
+
   // --- Image generation ---
 
   async generateImages(

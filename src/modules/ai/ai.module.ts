@@ -17,6 +17,6 @@ import { User, UserSchema } from '../users/schemas/user.schema';
     ]),
   ],
   providers: [AiService, OpenRouterService],
-  exports: [AiService],
+  exports: [AiService, OpenRouterService],
 })
 export class AiModule {}

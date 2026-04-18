@@ -62,6 +62,24 @@ export class TokensService {
     return transaction;
   }
 
+  async chargeTokens(
+    userId: string,
+    amount: number,
+    campaignId: string,
+    description: string,
+  ): Promise<void> {
+    await this.usersService.deductTokens(userId, amount);
+    const transaction = new this.transactionModel({
+      userId: new Types.ObjectId(userId),
+      type: 'campaign_spend',
+      tokens: amount,
+      status: TransactionStatus.APPROVED,
+      campaignId,
+      adminNote: description,
+    });
+    await transaction.save();
+  }
+
   async createPurchaseRequest(userId: string, dto: CreateTransactionDto) {
     const transaction = new this.transactionModel({
       userId: new Types.ObjectId(userId),
