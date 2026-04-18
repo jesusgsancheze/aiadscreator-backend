@@ -132,31 +132,13 @@ export class OpenRouterService {
   async generateSingleImage(
     imagePrompt: string,
     variationInstructions: string,
-    productImagePath: string,
+    productImagePaths: string[],
   ): Promise<string | null> {
-    const absoluteProductPath = path.join(process.cwd(), productImagePath);
-    let productImagePart: any = null;
-
-    if (fs.existsSync(absoluteProductPath)) {
-      const imageBuffer = fs.readFileSync(absoluteProductPath);
-      const base64 = imageBuffer.toString('base64');
-      const ext = path.extname(absoluteProductPath).toLowerCase();
-      let mime = 'image/jpeg';
-      if (ext === '.png') mime = 'image/png';
-      else if (ext === '.webp') mime = 'image/webp';
-      productImagePart = {
-        type: 'image_url',
-        image_url: { url: `data:${mime};base64,${base64}` },
-      };
-    }
-
     try {
       const fullPrompt = `Generate a high-quality, professional advertising image based on this description:\n\n${imagePrompt}\n\nVariation style: ${variationInstructions}`;
 
-      const userContent: any[] = [{ type: 'text', text: fullPrompt }];
-      if (productImagePart) {
-        userContent.push(productImagePart);
-      }
+      const productImageParts = this.readProductImages(productImagePaths);
+      const userContent: any[] = [{ type: 'text', text: fullPrompt }, ...productImageParts];
 
       const response = await axios.post(
         OPENROUTER_API_URL,
@@ -223,7 +205,7 @@ export class OpenRouterService {
 
   async generateImages(
     imagePrompt: string,
-    productImagePath: string,
+    productImagePaths: string[],
     imageCount: number = 3,
   ): Promise<string[]> {
     const variationStyles = [
@@ -245,31 +227,14 @@ export class OpenRouterService {
       name: `variation-${i + 1}`,
     }));
 
-    // Read product image for reference context
-    const absoluteProductPath = path.join(process.cwd(), productImagePath);
-    let productImagePart: any = null;
-
-    if (fs.existsSync(absoluteProductPath)) {
-      const imageBuffer = fs.readFileSync(absoluteProductPath);
-      const base64 = imageBuffer.toString('base64');
-      const ext = path.extname(absoluteProductPath).toLowerCase();
-      let mime = 'image/jpeg';
-      if (ext === '.png') mime = 'image/png';
-      else if (ext === '.webp') mime = 'image/webp';
-      productImagePart = {
-        type: 'image_url',
-        image_url: { url: `data:${mime};base64,${base64}` },
-      };
-    }
+    // Read all product images for reference context
+    const productImageParts = this.readProductImages(productImagePaths);
 
     const promises = variations.map(async (variation) => {
       try {
         const fullPrompt = `Generate a high-quality, professional advertising image based on this description:\n\n${imagePrompt}\n\nVariation style: ${variation.suffix}`;
 
-        const userContent: any[] = [{ type: 'text', text: fullPrompt }];
-        if (productImagePart) {
-          userContent.push(productImagePart);
-        }
+        const userContent: any[] = [{ type: 'text', text: fullPrompt }, ...productImageParts];
 
         const response = await axios.post(
           OPENROUTER_API_URL,
@@ -342,6 +307,26 @@ export class OpenRouterService {
 
     this.logger.log(`Generated ${generatedPaths.length} image variations via OpenRouter`);
     return generatedPaths;
+  }
+
+  private readProductImages(productImagePaths: string[]): any[] {
+    const parts: any[] = [];
+    for (const imagePath of productImagePaths) {
+      const absolutePath = path.join(process.cwd(), imagePath);
+      if (fs.existsSync(absolutePath)) {
+        const imageBuffer = fs.readFileSync(absolutePath);
+        const base64 = imageBuffer.toString('base64');
+        const ext = path.extname(absolutePath).toLowerCase();
+        let mime = 'image/jpeg';
+        if (ext === '.png') mime = 'image/png';
+        else if (ext === '.webp') mime = 'image/webp';
+        parts.push({
+          type: 'image_url',
+          image_url: { url: `data:${mime};base64,${base64}` },
+        });
+      }
+    }
+    return parts;
   }
 
   private async saveImageFromDataUrl(url: string, variationName: string): Promise<string> {

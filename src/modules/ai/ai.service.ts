@@ -116,7 +116,7 @@ export class AiService {
       this.logger.log(`Generating ${campaign.imageCount || 3} images for campaign ${campaignId}`);
       const generatedImages = await this.openRouterService.generateImages(
         imagePrompt,
-        campaign.productImage,
+        campaign.productImages,
         campaign.imageCount || 3,
       );
 

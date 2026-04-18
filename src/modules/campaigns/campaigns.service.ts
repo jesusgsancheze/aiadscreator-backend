@@ -20,11 +20,11 @@ export class CampaignsService {
   async create(
     dto: CreateCampaignDto,
     userId: string,
-    productImage: string,
+    productImages: string[],
   ): Promise<CampaignDocument> {
     const campaign = new this.campaignModel({
       ...dto,
-      productImage,
+      productImages,
       clientId: new Types.ObjectId(dto.clientId),
       userId: new Types.ObjectId(userId),
     });

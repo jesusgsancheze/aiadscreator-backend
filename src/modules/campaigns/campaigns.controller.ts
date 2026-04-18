@@ -10,10 +10,11 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  UploadedFiles,
   BadRequestException,
   ParseIntPipe,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { CampaignsService } from './campaigns.service';
 import { AiService } from '../ai/ai.service';
 import { OpenRouterService } from '../ai/openrouter.service';
@@ -41,17 +42,21 @@ export class CampaignsController {
   ) {}
 
   @Post()
-  @UseInterceptors(FileInterceptor('productImage'))
+  @UseInterceptors(FilesInterceptor('productImages', 10))
   async create(
     @Body() dto: CreateCampaignDto,
     @CurrentUser('userId') userId: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFiles() files: Express.Multer.File[],
   ) {
-    if (!file) {
-      throw new BadRequestException('Product image is required.');
+    if (!files || files.length === 0) {
+      throw new BadRequestException('At least one product image is required.');
     }
-    const imagePath = await this.uploadService.saveFile(file);
-    return this.campaignsService.create(dto, userId, imagePath);
+    const imagePaths: string[] = [];
+    for (const file of files) {
+      const imagePath = await this.uploadService.saveFile(file);
+      imagePaths.push(imagePath);
+    }
+    return this.campaignsService.create(dto, userId, imagePaths);
   }
 
   @Get()
@@ -260,7 +265,7 @@ export class CampaignsController {
       return this.openRouterService.generateSingleImage(
         imagePrompt,
         style,
-        campaign.productImage,
+        campaign.productImages,
       );
     });
 

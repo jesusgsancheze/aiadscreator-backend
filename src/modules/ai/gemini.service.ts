@@ -23,7 +23,7 @@ export class GeminiService {
 
   async generateImages(
     imagePrompt: string,
-    productImagePath: string,
+    productImagePaths: string[],
   ): Promise<string[]> {
     const variations = [
       {
@@ -42,17 +42,24 @@ export class GeminiService {
 
     const generatedPaths: string[] = [];
 
-    // Read product image for reference
-    const absoluteProductPath = path.join(process.cwd(), productImagePath);
-    let productImageData: string | null = null;
-    let productImageMime: string = 'image/jpeg';
-
-    if (fs.existsSync(absoluteProductPath)) {
-      const imageBuffer = fs.readFileSync(absoluteProductPath);
-      productImageData = imageBuffer.toString('base64');
-      const ext = path.extname(absoluteProductPath).toLowerCase();
-      if (ext === '.png') productImageMime = 'image/png';
-      else if (ext === '.webp') productImageMime = 'image/webp';
+    // Read all product images for reference
+    const productImageInlineParts: any[] = [];
+    for (const productImagePath of productImagePaths) {
+      const absoluteProductPath = path.join(process.cwd(), productImagePath);
+      if (fs.existsSync(absoluteProductPath)) {
+        const imageBuffer = fs.readFileSync(absoluteProductPath);
+        const productImageData = imageBuffer.toString('base64');
+        let productImageMime = 'image/jpeg';
+        const ext = path.extname(absoluteProductPath).toLowerCase();
+        if (ext === '.png') productImageMime = 'image/png';
+        else if (ext === '.webp') productImageMime = 'image/webp';
+        productImageInlineParts.push({
+          inlineData: {
+            mimeType: productImageMime,
+            data: productImageData,
+          },
+        });
+      }
     }
 
     // Generate 3 variations in parallel
@@ -64,15 +71,7 @@ export class GeminiService {
           model: 'imagen-3.0-generate-002',
         });
 
-        const parts: any[] = [{ text: fullPrompt }];
-        if (productImageData) {
-          parts.push({
-            inlineData: {
-              mimeType: productImageMime,
-              data: productImageData,
-            },
-          });
-        }
+        const parts: any[] = [{ text: fullPrompt }, ...productImageInlineParts];
 
         const result = await model.generateContent(parts);
         const response = result.response;

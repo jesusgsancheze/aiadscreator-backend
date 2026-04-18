@@ -9,8 +9,8 @@ export class Campaign {
   @Prop({ type: String, enum: SocialMedia, required: true })
   socialMedia: SocialMedia;
 
-  @Prop({ required: true })
-  productImage: string;
+  @Prop({ type: [String], default: [] })
+  productImages: string[];
 
   @Prop({ required: true })
   campaignDescription: string;
