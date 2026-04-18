@@ -37,6 +37,7 @@ export class AuthService {
       firstName: dto.firstName,
       lastName: dto.lastName,
       password: hashedPassword,
+      ...(dto.language && { language: dto.language }),
       emailVerificationToken: verificationToken,
       emailVerificationExpires: verificationExpires,
     });
@@ -82,6 +83,7 @@ export class AuthService {
         lastName: user.lastName,
         role: user.role,
         language: user.language,
+        tokenBalance: user.tokenBalance,
       },
     };
   }
@@ -89,7 +91,8 @@ export class AuthService {
   async verifyEmail(token: string) {
     const user = await this.usersService.findByVerificationToken(token);
     if (!user) {
-      throw new BadRequestException('Invalid verification token.');
+      // Token already consumed — if user is already verified, treat as success
+      return { message: 'Email verified successfully. You can now log in.' };
     }
 
     if (

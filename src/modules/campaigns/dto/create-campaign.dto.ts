@@ -1,4 +1,5 @@
-import { IsEnum, IsString, IsMongoId } from 'class-validator';
+import { IsEnum, IsString, IsMongoId, IsOptional, IsInt, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
 import { SocialMedia } from '../../../common/constants';
 
 export class CreateCampaignDto {
@@ -14,4 +15,11 @@ export class CreateCampaignDto {
   @IsString()
   @IsMongoId()
   clientId: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  imageCount?: number;
 }

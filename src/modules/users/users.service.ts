@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from './schemas/user.schema';
@@ -47,5 +47,49 @@ export class UsersService {
       .findByIdAndUpdate(userId, dto, { new: true })
       .select('-password')
       .exec();
+  }
+
+  async addTokens(userId: string, amount: number): Promise<UserDocument> {
+    const user = await this.userModel
+      .findByIdAndUpdate(
+        userId,
+        { $inc: { tokenBalance: amount } },
+        { new: true },
+      )
+      .select('-password')
+      .exec();
+    if (!user) {
+      throw new BadRequestException('User not found.');
+    }
+    return user;
+  }
+
+  async deductTokens(userId: string, amount: number): Promise<UserDocument> {
+    const user = await this.userModel.findById(userId).exec();
+    if (!user) {
+      throw new BadRequestException('User not found.');
+    }
+    if (user.tokenBalance < amount) {
+      throw new BadRequestException(
+        `Insufficient tokens. Balance: ${user.tokenBalance}, required: ${amount}.`,
+      );
+    }
+    const updated = await this.userModel
+      .findByIdAndUpdate(
+        userId,
+        { $inc: { tokenBalance: -amount } },
+        { new: true },
+      )
+      .select('-password')
+      .exec();
+    return updated!;
+  }
+
+  async getTokenBalance(userId: string): Promise<number> {
+    const user = await this.userModel.findById(userId).select('tokenBalance').exec();
+    if (!user) {
+      throw new BadRequestException('User not found.');
+    }
+    return user.tokenBalance;
   }
 }

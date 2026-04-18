@@ -15,6 +15,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CampaignsService } from './campaigns.service';
 import { AiService } from '../ai/ai.service';
+import { TokensService } from '../tokens/tokens.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import { UpdatePerformanceDto } from './dto/update-performance.dto';
@@ -30,6 +31,7 @@ export class CampaignsController {
     private readonly campaignsService: CampaignsService,
     private readonly aiService: AiService,
     private readonly uploadService: UploadService,
+    private readonly tokensService: TokensService,
   ) {}
 
   @Post()
@@ -104,11 +106,25 @@ export class CampaignsController {
     if (campaign.userId.toString() !== userId) {
       throw new BadRequestException('You do not own this campaign.');
     }
-    // Trigger AI generation asynchronously
-    this.aiService.generateCampaignContent(id).catch(() => {
-      // Error handling is done inside the service (status set to FAILED)
+
+    // Check token balance before generating
+    const imageCount = campaign.imageCount || 3;
+    const { canAfford, balance, cost } =
+      await this.tokensService.canAffordCampaign(userId, imageCount);
+    if (!canAfford) {
+      throw new BadRequestException(
+        `Insufficient tokens. You need ${cost} tokens but only have ${balance}.`,
+      );
+    }
+
+    // Charge tokens
+    await this.tokensService.chargeCampaign(userId, imageCount, id);
+
+    // Trigger AI generation — run in background but log errors
+    this.aiService.generateCampaignContent(id).catch((err) => {
+      console.error('AI generation failed:', err.message);
     });
-    return { message: 'AI content generation in progress...' };
+    return { message: 'AI content generation in progress...', campaignId: id };
   }
 
   @Delete(':id')

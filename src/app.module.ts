@@ -12,6 +12,8 @@ import { MailModule } from './modules/mail/mail.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { MetaModule } from './modules/meta/meta.module';
+import { TokensModule } from './modules/tokens/tokens.module';
 
 @Module({
   imports: [
@@ -36,6 +38,8 @@ import { AdminModule } from './modules/admin/admin.module';
     UploadModule,
     AnalyticsModule,
     AdminModule,
+    MetaModule,
+    TokensModule,
   ],
 })
 export class AppModule {}

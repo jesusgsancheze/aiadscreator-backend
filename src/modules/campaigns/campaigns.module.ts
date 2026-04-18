@@ -5,6 +5,7 @@ import { CampaignsService } from './campaigns.service';
 import { CampaignsController } from './campaigns.controller';
 import { AiModule } from '../ai/ai.module';
 import { UploadModule } from '../upload/upload.module';
+import { TokensModule } from '../tokens/tokens.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { UploadModule } from '../upload/upload.module';
     ]),
     AiModule,
     UploadModule,
+    TokensModule,
   ],
   controllers: [CampaignsController],
   providers: [CampaignsService],

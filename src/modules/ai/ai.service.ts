@@ -1,23 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { ClaudeService } from './claude.service';
-import { GeminiService } from './gemini.service';
+import { OpenRouterService } from './openrouter.service';
 import {
   Campaign,
   CampaignDocument,
 } from '../campaigns/schemas/campaign.schema';
 import { Client, ClientDocument } from '../clients/schemas/client.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
-import { CampaignStatus, SocialMedia } from '../../common/constants';
+import { CampaignStatus } from '../../common/constants';
 
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
 
   constructor(
-    private readonly claudeService: ClaudeService,
-    private readonly geminiService: GeminiService,
+    private readonly openRouterService: OpenRouterService,
     @InjectModel(Campaign.name) private campaignModel: Model<CampaignDocument>,
     @InjectModel(Client.name) private clientModel: Model<ClientDocument>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
@@ -69,9 +67,9 @@ export class AiService {
         socialMedia: p.socialMedia,
       }));
 
-      // 4. Generate copy with Claude
+      // 4. Generate copy
       this.logger.log(`Generating copy for campaign ${campaignId}`);
-      const copy = await this.claudeService.generateCopy({
+      const copy = await this.openRouterService.generateCopy({
         socialMedia: campaign.socialMedia,
         campaignDescription: campaign.campaignDescription,
         clientName: client.name,
@@ -80,14 +78,13 @@ export class AiService {
         topPerformers: topPerformersData,
       });
 
-      // Save partial result
       await this.campaignModel
         .findByIdAndUpdate(campaignId, { copy })
         .exec();
 
-      // 5. Generate caption with Claude
+      // 5. Generate caption
       this.logger.log(`Generating caption for campaign ${campaignId}`);
-      const caption = await this.claudeService.generateCaption({
+      const caption = await this.openRouterService.generateCaption({
         socialMedia: campaign.socialMedia,
         campaignDescription: campaign.campaignDescription,
         clientName: client.name,
@@ -97,14 +94,13 @@ export class AiService {
         topPerformers: topPerformersData,
       });
 
-      // Save partial result
       await this.campaignModel
         .findByIdAndUpdate(campaignId, { caption })
         .exec();
 
-      // 6. Generate image prompt with Claude
+      // 6. Generate image prompt
       this.logger.log(`Generating image prompt for campaign ${campaignId}`);
-      const imagePrompt = await this.claudeService.generateImagePrompt({
+      const imagePrompt = await this.openRouterService.generateImagePrompt({
         copy,
         caption,
         imageDescription: campaign.imageDescription,
@@ -112,16 +108,16 @@ export class AiService {
         clientName: client.name,
       });
 
-      // Save partial result
       await this.campaignModel
         .findByIdAndUpdate(campaignId, { imagePrompt })
         .exec();
 
-      // 7. Generate images with Gemini (3 variations in parallel)
-      this.logger.log(`Generating images for campaign ${campaignId}`);
-      const generatedImages = await this.geminiService.generateImages(
+      // 7. Generate images (N variations in parallel)
+      this.logger.log(`Generating ${campaign.imageCount || 3} images for campaign ${campaignId}`);
+      const generatedImages = await this.openRouterService.generateImages(
         imagePrompt,
         campaign.productImage,
+        campaign.imageCount || 3,
       );
 
       // 8. Update campaign with final results
@@ -140,7 +136,6 @@ export class AiService {
         `Failed to generate content for campaign ${campaignId}: ${error.message}`,
       );
 
-      // Set status to FAILED but keep any partial results
       if (campaign) {
         await this.campaignModel
           .findByIdAndUpdate(campaignId, {

@@ -24,6 +24,9 @@ export class User {
   @Prop({ type: String, enum: Language, default: Language.EN })
   language: Language;
 
+  @Prop({ type: Number, default: 0 })
+  tokenBalance: number;
+
   @Prop({ default: false })
   isEmailVerified: boolean;
 

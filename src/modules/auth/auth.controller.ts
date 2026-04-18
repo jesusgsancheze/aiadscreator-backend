@@ -4,7 +4,7 @@ import {
   Get,
   Patch,
   Body,
-  Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -28,8 +28,8 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
-  @Get('verify-email/:token')
-  verifyEmail(@Param('token') token: string) {
+  @Get('verify-email')
+  verifyEmail(@Query('token') token: string) {
     return this.authService.verifyEmail(token);
   }
 

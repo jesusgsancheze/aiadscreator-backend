@@ -18,6 +18,9 @@ export class Campaign {
   @Prop({ required: true })
   imageDescription: string;
 
+  @Prop({ type: Number, default: 3, min: 1, max: 10 })
+  imageCount: number;
+
   @Prop({ type: Types.ObjectId, ref: 'Client', required: true, index: true })
   clientId: Types.ObjectId;
 
@@ -61,6 +64,18 @@ export class Campaign {
 
   @Prop({ type: Number, default: null })
   selectedImage: number | null;
+
+  @Prop({ type: String, default: null })
+  metaCampaignId: string | null;
+
+  @Prop({ type: String, default: null })
+  metaAdSetId: string | null;
+
+  @Prop({ type: String, default: null })
+  metaAdId: string | null;
+
+  @Prop({ type: String, default: null })
+  metaStatus: string | null;
 }
 
 export const CampaignSchema = SchemaFactory.createForClass(Campaign);

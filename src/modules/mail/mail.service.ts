@@ -15,7 +15,7 @@ export class MailService {
       secure: false,
       auth: {
         user: this.configService.get<string>('MAIL_USER'),
-        pass: this.configService.get<string>('MAIL_PASSWORD'),
+        pass: this.configService.get<string>('MAIL_PASS'),
       },
     });
   }
@@ -81,6 +81,140 @@ export class MailService {
       this.logger.log(`Verification email sent to ${email}`);
     } catch (error) {
       this.logger.error(`Failed to send verification email to ${email}`, error);
+      throw error;
+    }
+  }
+
+  async sendPaymentNotification(
+    adminEmails: string[],
+    userEmail: string,
+    userName: string,
+    amount: number,
+    tokens: number,
+    paymentMethod: string,
+  ): Promise<void> {
+    const templateSource = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #F59E0B; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+          .detail { margin: 10px 0; padding: 8px 12px; background: #fff; border-radius: 4px; }
+          .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>New Payment Request</h1>
+          </div>
+          <div class="content">
+            <h2>A user has submitted a payment</h2>
+            <div class="detail"><strong>User:</strong> {{userName}} ({{userEmail}})</div>
+            <div class="detail"><strong>Amount:</strong> \${{amount}}</div>
+            <div class="detail"><strong>Tokens:</strong> {{tokens}}</div>
+            <div class="detail"><strong>Payment Method:</strong> {{paymentMethod}}</div>
+            <p>Please log in to the admin panel to review this transaction.</p>
+          </div>
+          <div class="footer">
+            <p>AI Ads Creator - Admin Notification</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const template = Handlebars.compile(templateSource);
+    const html = template({ userName, userEmail, amount, tokens, paymentMethod });
+
+    try {
+      await this.transporter.sendMail({
+        from: `"AI Ads Creator" <${this.configService.get<string>('MAIL_USER')}>`,
+        to: adminEmails.join(', '),
+        subject: `New payment request from ${userName}`,
+        html,
+      });
+      this.logger.log(`Payment notification sent to ${adminEmails.join(', ')}`);
+    } catch (error) {
+      this.logger.error('Failed to send payment notification email', error);
+      throw error;
+    }
+  }
+
+  async sendPaymentResult(
+    userEmail: string,
+    userName: string,
+    status: string,
+    tokens: number,
+    adminNote?: string,
+  ): Promise<void> {
+    const isApproved = status === 'approved';
+    const statusColor = isApproved ? '#10B981' : '#EF4444';
+    const statusText = isApproved ? 'Approved' : 'Rejected';
+
+    const templateSource = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: {{statusColor}}; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+          .status-badge { display: inline-block; padding: 6px 16px; border-radius: 20px; background: {{statusColor}}; color: white; font-weight: bold; }
+          .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Payment {{statusText}}</h1>
+          </div>
+          <div class="content">
+            <h2>Hello, {{userName}}!</h2>
+            <p>Your payment request has been <span class="status-badge">{{statusText}}</span></p>
+            {{#if isApproved}}
+            <p><strong>{{tokens}} tokens</strong> have been added to your account.</p>
+            {{else}}
+            <p>Unfortunately, your payment request for <strong>{{tokens}} tokens</strong> was not approved.</p>
+            {{/if}}
+            {{#if adminNote}}
+            <p><strong>Note from admin:</strong> {{adminNote}}</p>
+            {{/if}}
+          </div>
+          <div class="footer">
+            <p>AI Ads Creator</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const template = Handlebars.compile(templateSource);
+    const html = template({
+      userName,
+      statusColor,
+      statusText,
+      tokens,
+      isApproved,
+      adminNote,
+    });
+
+    try {
+      await this.transporter.sendMail({
+        from: `"AI Ads Creator" <${this.configService.get<string>('MAIL_USER')}>`,
+        to: userEmail,
+        subject: `Payment ${statusText} - AI Ads Creator`,
+        html,
+      });
+      this.logger.log(`Payment result email sent to ${userEmail}`);
+    } catch (error) {
+      this.logger.error(`Failed to send payment result email to ${userEmail}`, error);
       throw error;
     }
   }

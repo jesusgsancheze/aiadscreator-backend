@@ -23,3 +23,34 @@ export enum Language {
   ES = 'es',
   FR = 'fr',
 }
+
+export enum TransactionStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+}
+
+export enum PaymentMethodType {
+  BINANCE = 'binance',
+  ZELLE = 'zelle',
+  PAGO_MOVIL = 'pago_movil',
+}
+
+export const TOKEN_COSTS = {
+  COPY_AND_CAPTION: 50,
+  PER_IMAGE: 40,
+};
+
+export const TOKEN_PACKAGES = [
+  { id: 'custom', tokens: 0, price: 0, label: 'Custom' },
+  { id: 'starter', tokens: 5500, price: 50, label: '$50 - 5,500 tokens' },
+  { id: 'pro', tokens: 11000, price: 100, label: '$100 - 11,000 tokens' },
+  {
+    id: 'enterprise',
+    tokens: 22500,
+    price: 200,
+    label: '$200 - 22,500 tokens',
+  },
+];
+
+export const TOKENS_PER_DOLLAR = 100;
