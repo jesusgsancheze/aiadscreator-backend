@@ -23,6 +23,7 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { ReviewTransactionDto } from './dto/review-transaction.dto';
 import { AdminGrantTokensDto } from './dto/admin-grant-tokens.dto';
 import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
+import { UpdateAdminSettingsDto } from './dto/update-admin-settings.dto';
 import { UsersService } from '../users/users.service';
 import { UploadService } from '../upload/upload.service';
 import { ObjectIdValidationPipe } from '../../common/pipes/object-id-validation.pipe';
@@ -167,8 +168,8 @@ export class TokensController {
   @Roles(Role.SUPERADMIN)
   async setAdminSetting(
     @Param('key') key: string,
-    @Body('value') value: any,
+    @Body() dto: UpdateAdminSettingsDto,
   ) {
-    return this.paymentMethodsService.setAdminSettings(key, value);
+    return this.paymentMethodsService.setAdminSettings(key, dto.value);
   }
 }
