@@ -25,11 +25,10 @@ export class MailService {
     firstName: string,
     token: string,
   ): Promise<void> {
-    const frontendUrl = this.configService.get<string>(
-      'FRONTEND_URL',
-      'http://localhost:4000',
-    );
-    const verificationLink = `${frontendUrl}/verify-email?token=${token}`;
+    const emailUrl = this.configService.get<string>('EMAIL_URL')
+      || this.configService.get<string>('FRONTEND_URL')
+      || 'http://localhost:4000';
+    const verificationLink = `${emailUrl}/verify-email?token=${token}`;
 
     const templateSource = `
       <!DOCTYPE html>

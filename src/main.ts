@@ -8,7 +8,13 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:4000',
+    origin: [
+      process.env.FRONTEND_URL || 'http://localhost:4000',
+      'http://192.168.0.108:4000',          // your Mac's LAN IP
+      'http://Jesuss-Mac-mini.local:4000',
+      'http://jesuss-mac-mini.local:4000',
+
+    ],
     credentials: true,
   });
 
