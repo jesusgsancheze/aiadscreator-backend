@@ -75,6 +75,12 @@ export class TokensController {
     return this.tokensService.uploadPaymentProof(id, userId, filePath);
   }
 
+  @Get('payment-methods')
+  async getActivePaymentMethods() {
+    const methods = await this.paymentMethodsService.getAllPaymentMethods();
+    return methods.filter((m) => m.isActive);
+  }
+
   @Get('transactions')
   async getUserTransactions(
     @CurrentUser('userId') userId: string,
