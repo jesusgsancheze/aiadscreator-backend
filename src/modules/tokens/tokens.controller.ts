@@ -62,7 +62,7 @@ export class TokensController {
   }
 
   @Post('purchase/:id/proof')
-  @UseInterceptors(FileInterceptor('proof'))
+  @UseInterceptors(FileInterceptor('paymentProof'))
   async uploadProof(
     @Param('id', ObjectIdValidationPipe) id: string,
     @CurrentUser('userId') userId: string,
