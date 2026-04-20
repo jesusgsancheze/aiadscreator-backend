@@ -52,6 +52,20 @@ export class OpenRouterService {
     };
   }
 
+  // Models that only support image output (no text)
+  private readonly imageOnlyModels = [
+    'black-forest-labs/flux.2-pro',
+    'black-forest-labs/flux.2-max',
+    'openai/gpt-5-image',
+    'openai/gpt-5-image-mini',
+  ];
+
+  private getImageModalities(model: string): string[] {
+    return this.imageOnlyModels.some((m) => model.startsWith(m))
+      ? ['image']
+      : ['image', 'text'];
+  }
+
   private async chatCompletion(
     model: string,
     systemPrompt: string,
@@ -160,7 +174,7 @@ export class OpenRouterService {
               content: userContent,
             },
           ],
-          modalities: ['image', 'text'],
+          modalities: this.getImageModalities(model),
           max_tokens: 4096,
         },
         { headers: this.headers },
@@ -258,7 +272,7 @@ export class OpenRouterService {
                 content: userContent,
               },
             ],
-            modalities: ['image', 'text'],
+            modalities: this.getImageModalities(model),
             max_tokens: 4096,
           },
           { headers: this.headers },
