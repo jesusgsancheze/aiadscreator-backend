@@ -18,8 +18,9 @@ import { CreateMetaConnectionDto } from './dto/create-meta-connection.dto';
 import { UpdateMetaConnectionDto } from './dto/update-meta-connection.dto';
 import { PublishCampaignDto } from './dto/publish-campaign.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Campaign, CampaignDocument } from '../campaigns/schemas/campaign.schema';
+import { MetaConnection, MetaConnectionDocument } from './schemas/meta-connection.schema';
 
 @Controller('meta')
 @UseGuards(JwtAuthGuard)
@@ -31,6 +32,8 @@ export class MetaController {
     private readonly metaService: MetaService,
     @InjectModel(Campaign.name)
     private readonly campaignModel: Model<CampaignDocument>,
+    @InjectModel(MetaConnection.name)
+    private readonly metaConnectionModel: Model<MetaConnectionDocument>,
   ) {}
 
   @Post('connections')
@@ -51,7 +54,12 @@ export class MetaController {
     @CurrentUser('userId') userId: string,
     @Param('clientId') clientId: string,
   ) {
-    return this.metaConnectionService.findByUserAndClient(userId, clientId);
+    const connection = await this.metaConnectionModel.findOne({
+      userId: new Types.ObjectId(userId),
+      clientId: new Types.ObjectId(clientId),
+      isActive: true,
+    });
+    return connection || null;
   }
 
   @Patch('connections/:id')
