@@ -6,11 +6,11 @@ import {
   Body,
   Param,
   Query,
-  Req,
   UseGuards,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  ValidationPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { TokensService } from './tokens.service';
@@ -169,9 +169,9 @@ export class TokensController {
   @Roles(Role.SUPERADMIN)
   async setAdminSetting(
     @Param('key') key: string,
-    @Req() req: any,
+    @Body(new ValidationPipe({ whitelist: false, transform: false, forbidNonWhitelisted: false })) body: any,
   ) {
-    const value = req.body?.value;
+    const value = body?.value;
     if (value === undefined) {
       throw new BadRequestException('value is required');
     }
