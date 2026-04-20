@@ -1,4 +1,4 @@
-import { IsEnum, IsString, IsMongoId, IsOptional, IsInt, Min, Max } from 'class-validator';
+import { IsEnum, IsString, IsMongoId, IsOptional, IsInt, IsBoolean, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SocialMedia, TextAgent, ImageAgent } from '../../../common/constants';
 
@@ -34,4 +34,9 @@ export class CreateCampaignDto {
   @IsOptional()
   @IsEnum(ImageAgent)
   imageAgent?: ImageAgent;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  preserveProduct?: boolean;
 }

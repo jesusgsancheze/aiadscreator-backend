@@ -30,6 +30,9 @@ export class Campaign {
   @Prop({ type: String, enum: ImageAgent, default: ImageAgent.GEMINI })
   imageAgent: ImageAgent;
 
+  @Prop({ type: Boolean, default: false })
+  preserveProduct: boolean;
+
   @Prop({ type: Types.ObjectId, ref: 'Client', required: true, index: true })
   clientId: Types.ObjectId;
 

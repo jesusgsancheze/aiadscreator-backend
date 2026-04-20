@@ -4,6 +4,7 @@ export interface ImagePromptGenerationContext {
   imageDescription: string;
   socialMedia: string;
   clientName: string;
+  preserveProduct?: boolean;
 }
 
 export function getImagePromptGenerationPrompt(
@@ -22,7 +23,9 @@ Guidelines:
 - Specify the aspect ratio appropriate for ${context.socialMedia}
 - Focus on commercial/advertising quality imagery
 - Include photography style references when appropriate
-- Do NOT include any text or words in the image description`;
+- Do NOT include any text or words in the image description${context.preserveProduct ? `
+
+CRITICAL CONSTRAINT: The product, logo, and branding elements from the reference images must be preserved EXACTLY as they appear. Do NOT alter, redesign, or reimagine the product or logo in any way. Only modify the surroundings, background, scene, lighting, and environment around the product. The product/logo must remain pixel-perfect and unmodified. Treat the reference images as sacred — change EVERYTHING around them but NOTHING about them.` : ''}`;
 
   const userPrompt = `Create a detailed image generation prompt based on the following campaign:
 

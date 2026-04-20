@@ -111,6 +111,7 @@ export class AiService {
         imageDescription: campaign.imageDescription,
         socialMedia: campaign.socialMedia,
         clientName: client.name,
+        preserveProduct: campaign.preserveProduct,
       }, imagePromptModel);
 
       await this.campaignModel
