@@ -1,6 +1,6 @@
-import { Allow } from 'class-validator';
+import { IsArray, IsNotEmpty } from 'class-validator';
 
 export class UpdateAdminSettingsDto {
-  @Allow()
+  @IsNotEmpty()
   value: any;
 }

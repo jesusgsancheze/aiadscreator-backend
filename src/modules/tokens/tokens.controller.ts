@@ -6,6 +6,7 @@ import {
   Body,
   Param,
   Query,
+  Req,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -168,8 +169,12 @@ export class TokensController {
   @Roles(Role.SUPERADMIN)
   async setAdminSetting(
     @Param('key') key: string,
-    @Body() dto: UpdateAdminSettingsDto,
+    @Req() req: any,
   ) {
-    return this.paymentMethodsService.setAdminSettings(key, dto.value);
+    const value = req.body?.value;
+    if (value === undefined) {
+      throw new BadRequestException('value is required');
+    }
+    return this.paymentMethodsService.setAdminSettings(key, value);
   }
 }

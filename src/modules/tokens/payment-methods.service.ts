@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -13,6 +13,7 @@ import { UpdatePaymentMethodDto } from './dto/update-payment-method.dto';
 
 @Injectable()
 export class PaymentMethodsService {
+  private readonly logger = new Logger(PaymentMethodsService.name);
   constructor(
     @InjectModel(PaymentMethodConfig.name)
     private paymentMethodModel: Model<PaymentMethodConfigDocument>,
@@ -53,12 +54,15 @@ export class PaymentMethodsService {
     key: string,
     value: any,
   ): Promise<AdminSettingsDocument> {
-    return this.adminSettingsModel
+    this.logger.log(`Setting admin setting: key=${key}, value=${JSON.stringify(value)}`);
+    const result = await this.adminSettingsModel
       .findOneAndUpdate(
         { key },
-        { $set: { value } },
+        { $set: { key, value } },
         { upsert: true, new: true },
       )
-      .exec() as Promise<AdminSettingsDocument>;
+      .exec();
+    this.logger.log(`Admin setting saved: ${JSON.stringify(result)}`);
+    return result as AdminSettingsDocument;
   }
 }
