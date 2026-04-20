@@ -35,20 +35,20 @@ export class MetaController {
 
   @Post('connections')
   async createConnection(
-    @CurrentUser('_id') userId: string,
+    @CurrentUser('userId') userId: string,
     @Body() dto: CreateMetaConnectionDto,
   ) {
     return this.metaConnectionService.create(userId, dto);
   }
 
   @Get('connections')
-  async listConnections(@CurrentUser('_id') userId: string) {
+  async listConnections(@CurrentUser('userId') userId: string) {
     return this.metaConnectionService.findAllByUser(userId);
   }
 
   @Get('connections/:clientId')
   async getConnectionByClient(
-    @CurrentUser('_id') userId: string,
+    @CurrentUser('userId') userId: string,
     @Param('clientId') clientId: string,
   ) {
     return this.metaConnectionService.findByUserAndClient(userId, clientId);
@@ -56,7 +56,7 @@ export class MetaController {
 
   @Patch('connections/:id')
   async updateConnection(
-    @CurrentUser('_id') userId: string,
+    @CurrentUser('userId') userId: string,
     @Param('id') id: string,
     @Body() dto: UpdateMetaConnectionDto,
   ) {
@@ -65,7 +65,7 @@ export class MetaController {
 
   @Delete('connections/:id')
   async deleteConnection(
-    @CurrentUser('_id') userId: string,
+    @CurrentUser('userId') userId: string,
     @Param('id') id: string,
   ) {
     return this.metaConnectionService.delete(id, userId);
@@ -73,7 +73,7 @@ export class MetaController {
 
   @Post('connections/:id/verify')
   async verifyConnection(
-    @CurrentUser('_id') userId: string,
+    @CurrentUser('userId') userId: string,
     @Param('id') id: string,
   ) {
     const connection = await this.metaConnectionService.findById(id);
@@ -86,7 +86,7 @@ export class MetaController {
 
   @Post('publish')
   async publishCampaign(
-    @CurrentUser('_id') userId: string,
+    @CurrentUser('userId') userId: string,
     @Body() dto: PublishCampaignDto,
   ) {
     // Find the campaign
@@ -135,7 +135,7 @@ export class MetaController {
 
   @Get('insights/:metaCampaignId')
   async getCampaignInsights(
-    @CurrentUser('_id') userId: string,
+    @CurrentUser('userId') userId: string,
     @Param('metaCampaignId') metaCampaignId: string,
     @Query('clientId') clientId: string,
   ) {
