@@ -28,7 +28,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ObjectIdValidationPipe } from '../../common/pipes/object-id-validation.pipe';
 import { UploadService } from '../upload/upload.service';
-import { TOKEN_COSTS } from '../../common/constants';
+import { TOKEN_COSTS, TEXT_AGENT_MODELS, IMAGE_AGENT_MODELS } from '../../common/constants';
 
 @UseGuards(JwtAuthGuard)
 @Controller('campaigns')
@@ -163,6 +163,7 @@ export class CampaignsController {
     await this.tokensService.chargeTokens(userId, cost, id, 'Refine copy');
 
     const client = campaign.clientId as any;
+    const modelOverride = dto.textAgent ? TEXT_AGENT_MODELS[dto.textAgent] : undefined;
     const refinedCopy = await this.openRouterService.refineCopy(
       campaign.copy,
       dto.instructions,
@@ -172,6 +173,7 @@ export class CampaignsController {
         clientDescription: client?.description || '',
         campaignDescription: campaign.campaignDescription,
       },
+      modelOverride,
     );
 
     return this.campaignsService.update(id, userId, { copy: refinedCopy } as any);
@@ -202,6 +204,7 @@ export class CampaignsController {
     await this.tokensService.chargeTokens(userId, cost, id, 'Refine caption');
 
     const client = campaign.clientId as any;
+    const modelOverride = dto.textAgent ? TEXT_AGENT_MODELS[dto.textAgent] : undefined;
     const refinedCaption = await this.openRouterService.refineCaption(
       campaign.caption,
       dto.instructions,
@@ -211,6 +214,7 @@ export class CampaignsController {
         clientDescription: client?.description || '',
         campaignDescription: campaign.campaignDescription,
       },
+      modelOverride,
     );
 
     return this.campaignsService.update(id, userId, { caption: refinedCaption } as any);
@@ -262,10 +266,12 @@ export class CampaignsController {
 
     const promises = Array.from({ length: dto.count }, (_, i) => {
       const style = dto.instructions || variationStyles[(currentCount + i) % variationStyles.length];
+      const imageModelOverride = dto.imageAgent ? IMAGE_AGENT_MODELS[dto.imageAgent] : undefined;
       return this.openRouterService.generateSingleImage(
         imagePrompt,
         style,
         campaign.productImages,
+        imageModelOverride,
       );
     });
 

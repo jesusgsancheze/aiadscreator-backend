@@ -113,10 +113,12 @@ export class OpenRouterService {
     currentCopy: string,
     instructions: string,
     context: { socialMedia: string; clientName: string; clientDescription: string; campaignDescription: string },
+    modelOverride?: string,
   ): Promise<string> {
+    const model = modelOverride || this.textModel;
     const systemPrompt = `You are an expert advertising copywriter. You are refining existing advertising copy for ${context.socialMedia}. The client is "${context.clientName}" — ${context.clientDescription}. The campaign is about: ${context.campaignDescription}. Return ONLY the refined copy text, no explanations.`;
     const userPrompt = `Here is the current copy:\n\n${currentCopy}\n\nPlease refine it with these instructions:\n${instructions}`;
-    const result = await this.chatCompletion(this.textModel, systemPrompt, userPrompt);
+    const result = await this.chatCompletion(model, systemPrompt, userPrompt);
     this.logger.log('Copy refined successfully via OpenRouter');
     return result;
   }
@@ -125,10 +127,12 @@ export class OpenRouterService {
     currentCaption: string,
     instructions: string,
     context: { socialMedia: string; clientName: string; clientDescription: string; campaignDescription: string },
+    modelOverride?: string,
   ): Promise<string> {
+    const model = modelOverride || this.textModel;
     const systemPrompt = `You are an expert social media strategist. You are refining an existing caption for ${context.socialMedia}. The client is "${context.clientName}" — ${context.clientDescription}. The campaign is about: ${context.campaignDescription}. Return ONLY the refined caption text, no explanations.`;
     const userPrompt = `Here is the current caption:\n\n${currentCaption}\n\nPlease refine it with these instructions:\n${instructions}`;
-    const result = await this.chatCompletion(this.textModel, systemPrompt, userPrompt);
+    const result = await this.chatCompletion(model, systemPrompt, userPrompt);
     this.logger.log('Caption refined successfully via OpenRouter');
     return result;
   }
