@@ -20,7 +20,6 @@ export enum ImageAgent {
   GEMINI = 'gemini',
   FLUX = 'flux',
   GPT_IMAGE = 'gpt_image',
-  RIVERFLOW = 'riverflow',
 }
 
 export const TEXT_AGENT_MODELS: Record<TextAgent, string> = {
@@ -32,7 +31,6 @@ export const IMAGE_AGENT_MODELS: Record<ImageAgent, string> = {
   [ImageAgent.GEMINI]: 'google/gemini-2.5-flash-image',
   [ImageAgent.FLUX]: 'black-forest-labs/flux.2-pro',
   [ImageAgent.GPT_IMAGE]: 'openai/gpt-5-image-mini',
-  [ImageAgent.RIVERFLOW]: 'sourceful/riverflow-v2-pro',
 };
 
 export enum CampaignStatus {
