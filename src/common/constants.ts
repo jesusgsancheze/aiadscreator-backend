@@ -19,6 +19,7 @@ export enum TextAgent {
 export enum ImageAgent {
   GEMINI = 'gemini',
   FLUX = 'flux',
+  WAN = 'wan',
 }
 
 export const TEXT_AGENT_MODELS: Record<TextAgent, string> = {
@@ -29,6 +30,7 @@ export const TEXT_AGENT_MODELS: Record<TextAgent, string> = {
 export const IMAGE_AGENT_MODELS: Record<ImageAgent, string> = {
   [ImageAgent.GEMINI]: 'google/gemini-2.5-flash-image',
   [ImageAgent.FLUX]: 'black-forest-labs/flux.2-pro',
+  [ImageAgent.WAN]: 'alibaba/wan-2.7',
 };
 
 export enum CampaignStatus {
