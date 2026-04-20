@@ -3,6 +3,9 @@ import { Type } from 'class-transformer';
 import { SocialMedia, TextAgent, ImageAgent } from '../../../common/constants';
 
 export class CreateCampaignDto {
+  @IsString()
+  title: string;
+
   @IsEnum(SocialMedia)
   socialMedia: SocialMedia;
 

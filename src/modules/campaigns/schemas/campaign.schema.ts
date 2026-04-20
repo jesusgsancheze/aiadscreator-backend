@@ -6,6 +6,9 @@ export type CampaignDocument = HydratedDocument<Campaign>;
 
 @Schema({ timestamps: true })
 export class Campaign {
+  @Prop({ required: true, trim: true })
+  title: string;
+
   @Prop({ type: String, enum: SocialMedia, required: true })
   socialMedia: SocialMedia;
 
