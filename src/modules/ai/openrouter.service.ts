@@ -79,27 +79,31 @@ export class OpenRouterService {
 
   // --- Text generation (copy, caption, image prompt) ---
 
-  async generateCopy(context: CopyGenerationContext): Promise<string> {
+  async generateCopy(context: CopyGenerationContext, modelOverride?: string): Promise<string> {
     const { systemPrompt, userPrompt } = getCopyGenerationPrompt(context);
-    const result = await this.chatCompletion(this.textModel, systemPrompt, userPrompt);
-    this.logger.log('Copy generated successfully via OpenRouter');
+    const model = modelOverride || this.textModel;
+    const result = await this.chatCompletion(model, systemPrompt, userPrompt);
+    this.logger.log(`Copy generated successfully via ${model}`);
     return result;
   }
 
-  async generateCaption(context: CaptionGenerationContext): Promise<string> {
+  async generateCaption(context: CaptionGenerationContext, modelOverride?: string): Promise<string> {
     const { systemPrompt, userPrompt } = getCaptionGenerationPrompt(context);
-    const result = await this.chatCompletion(this.textModel, systemPrompt, userPrompt);
-    this.logger.log('Caption generated successfully via OpenRouter');
+    const model = modelOverride || this.textModel;
+    const result = await this.chatCompletion(model, systemPrompt, userPrompt);
+    this.logger.log(`Caption generated successfully via ${model}`);
     return result;
   }
 
   async generateImagePrompt(
     context: ImagePromptGenerationContext,
+    modelOverride?: string,
   ): Promise<string> {
     const { systemPrompt, userPrompt } =
       getImagePromptGenerationPrompt(context);
-    const result = await this.chatCompletion(this.textModel, systemPrompt, userPrompt);
-    this.logger.log('Image prompt generated successfully via OpenRouter');
+    const model = modelOverride || this.textModel;
+    const result = await this.chatCompletion(model, systemPrompt, userPrompt);
+    this.logger.log(`Image prompt generated successfully via ${model}`);
     return result;
   }
 
@@ -133,7 +137,9 @@ export class OpenRouterService {
     imagePrompt: string,
     variationInstructions: string,
     productImagePaths: string[],
+    imageModelOverride?: string,
   ): Promise<string | null> {
+    const model = imageModelOverride || this.imageModel;
     try {
       const fullPrompt = `Generate a high-quality, professional advertising image based on this description:\n\n${imagePrompt}\n\nVariation style: ${variationInstructions}`;
 
@@ -143,7 +149,7 @@ export class OpenRouterService {
       const response = await axios.post(
         OPENROUTER_API_URL,
         {
-          model: this.imageModel,
+          model,
           messages: [
             {
               role: 'user',
@@ -207,6 +213,7 @@ export class OpenRouterService {
     imagePrompt: string,
     productImagePaths: string[],
     imageCount: number = 3,
+    imageModelOverride?: string,
   ): Promise<string[]> {
     const variationStyles = [
       'Focus on the product itself. Highlight product details, features, and quality.',
@@ -229,6 +236,7 @@ export class OpenRouterService {
 
     // Read all product images for reference context
     const productImageParts = this.readProductImages(productImagePaths);
+    const model = imageModelOverride || this.imageModel;
 
     const promises = variations.map(async (variation) => {
       try {
@@ -239,7 +247,7 @@ export class OpenRouterService {
         const response = await axios.post(
           OPENROUTER_API_URL,
           {
-            model: this.imageModel,
+            model,
             messages: [
               {
                 role: 'user',

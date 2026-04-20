@@ -8,7 +8,28 @@ export enum SocialMedia {
   TIKTOK = 'tiktok',
   FACEBOOK = 'facebook',
   WHATSAPP = 'whatsapp',
+  GOOGLE_ADS = 'google_ads',
 }
+
+export enum TextAgent {
+  CLAUDE = 'claude',
+  GROK = 'grok',
+}
+
+export enum ImageAgent {
+  GEMINI = 'gemini',
+  FLUX = 'flux',
+}
+
+export const TEXT_AGENT_MODELS: Record<TextAgent, string> = {
+  [TextAgent.CLAUDE]: 'anthropic/claude-sonnet-4',
+  [TextAgent.GROK]: 'x-ai/grok-4-fast',
+};
+
+export const IMAGE_AGENT_MODELS: Record<ImageAgent, string> = {
+  [ImageAgent.GEMINI]: 'google/gemini-2.5-flash-image',
+  [ImageAgent.FLUX]: 'black-forest-labs/flux.2-pro',
+};
 
 export enum CampaignStatus {
   DRAFT = 'draft',

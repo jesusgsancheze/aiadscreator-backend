@@ -1,6 +1,6 @@
 import { IsEnum, IsString, IsMongoId, IsOptional, IsInt, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
-import { SocialMedia } from '../../../common/constants';
+import { SocialMedia, TextAgent, ImageAgent } from '../../../common/constants';
 
 export class CreateCampaignDto {
   @IsEnum(SocialMedia)
@@ -22,4 +22,16 @@ export class CreateCampaignDto {
   @Min(1)
   @Max(10)
   imageCount?: number;
+
+  @IsOptional()
+  @IsEnum(TextAgent)
+  textAgent?: TextAgent;
+
+  @IsOptional()
+  @IsEnum(TextAgent)
+  imagePromptAgent?: TextAgent;
+
+  @IsOptional()
+  @IsEnum(ImageAgent)
+  imageAgent?: ImageAgent;
 }

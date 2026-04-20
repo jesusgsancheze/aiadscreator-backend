@@ -8,7 +8,7 @@ import {
 } from '../campaigns/schemas/campaign.schema';
 import { Client, ClientDocument } from '../clients/schemas/client.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
-import { CampaignStatus } from '../../common/constants';
+import { CampaignStatus, TEXT_AGENT_MODELS, IMAGE_AGENT_MODELS } from '../../common/constants';
 
 @Injectable()
 export class AiService {
@@ -49,6 +49,11 @@ export class AiService {
       const user = await this.userModel.findById(campaign.userId).exec();
       const language = user?.language || 'en';
 
+      // Resolve model overrides from campaign agent choices
+      const textModel = campaign.textAgent ? TEXT_AGENT_MODELS[campaign.textAgent] : undefined;
+      const imagePromptModel = campaign.imagePromptAgent ? TEXT_AGENT_MODELS[campaign.imagePromptAgent] : undefined;
+      const imageModel = campaign.imageAgent ? IMAGE_AGENT_MODELS[campaign.imageAgent] : undefined;
+
       // 3. Get top performing campaigns for retroactive learning
       const topPerformers = await this.campaignModel
         .find({
@@ -76,7 +81,7 @@ export class AiService {
         clientDescription: client.description,
         language,
         topPerformers: topPerformersData,
-      });
+      }, textModel);
 
       await this.campaignModel
         .findByIdAndUpdate(campaignId, { copy })
@@ -92,7 +97,7 @@ export class AiService {
         language,
         copy,
         topPerformers: topPerformersData,
-      });
+      }, textModel);
 
       await this.campaignModel
         .findByIdAndUpdate(campaignId, { caption })
@@ -106,7 +111,7 @@ export class AiService {
         imageDescription: campaign.imageDescription,
         socialMedia: campaign.socialMedia,
         clientName: client.name,
-      });
+      }, imagePromptModel);
 
       await this.campaignModel
         .findByIdAndUpdate(campaignId, { imagePrompt })
@@ -118,6 +123,7 @@ export class AiService {
         imagePrompt,
         campaign.productImages,
         campaign.imageCount || 3,
+        imageModel,
       );
 
       // 8. Update campaign with final results

@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
-import { SocialMedia, CampaignStatus } from '../../../common/constants';
+import { SocialMedia, CampaignStatus, TextAgent, ImageAgent } from '../../../common/constants';
 
 export type CampaignDocument = HydratedDocument<Campaign>;
 
@@ -20,6 +20,15 @@ export class Campaign {
 
   @Prop({ type: Number, default: 3, min: 1, max: 10 })
   imageCount: number;
+
+  @Prop({ type: String, enum: TextAgent, default: TextAgent.CLAUDE })
+  textAgent: TextAgent;
+
+  @Prop({ type: String, enum: TextAgent, default: TextAgent.CLAUDE })
+  imagePromptAgent: TextAgent;
+
+  @Prop({ type: String, enum: ImageAgent, default: ImageAgent.GEMINI })
+  imageAgent: ImageAgent;
 
   @Prop({ type: Types.ObjectId, ref: 'Client', required: true, index: true })
   clientId: Types.ObjectId;
