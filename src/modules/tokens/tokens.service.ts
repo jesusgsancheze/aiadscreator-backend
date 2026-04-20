@@ -97,7 +97,7 @@ export class TokensService {
     try {
       const adminEmailsSetting =
         await this.paymentMethodsService.getAdminSettings(
-          'notification_emails',
+          'notificationEmails',
         );
       const adminEmails: string[] = adminEmailsSetting?.value ?? [];
       if (adminEmails.length > 0) {
