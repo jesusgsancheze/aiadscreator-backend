@@ -58,6 +58,7 @@ export class OpenRouterService {
     'black-forest-labs/flux.2-max',
     'openai/gpt-5-image',
     'openai/gpt-5-image-mini',
+    'sourceful/riverflow-v2',
   ];
 
   private getImageModalities(model: string): string[] {
