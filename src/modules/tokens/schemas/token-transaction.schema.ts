@@ -52,6 +52,12 @@ export class TokenTransaction {
 
   @Prop({ type: String, default: null })
   campaignId: string | null;
+
+  @Prop({ type: String, default: null })
+  description: string | null;
+
+  @Prop({ type: String, default: null })
+  aiAgent: string | null;
 }
 
 export const TokenTransactionSchema =

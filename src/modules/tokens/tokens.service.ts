@@ -46,20 +46,34 @@ export class TokensService {
     userId: string,
     imageCount: number,
     campaignId: string,
+    textAgent?: string,
+    imageAgent?: string,
   ) {
-    const { total } = this.calculateCampaignCost(imageCount);
-    await this.usersService.deductTokens(userId, total);
+    const cost = this.calculateCampaignCost(imageCount);
+    await this.usersService.deductTokens(userId, cost.total);
 
-    const transaction = new this.transactionModel({
+    // Create separate transactions for copy+caption and images
+    const copyTx = new this.transactionModel({
       userId: new Types.ObjectId(userId),
       type: 'campaign_spend',
-      tokens: total,
+      tokens: cost.copyCaption,
       status: TransactionStatus.APPROVED,
       campaignId,
+      description: 'Copy & Caption generation',
+      aiAgent: textAgent || null,
     });
-    await transaction.save();
 
-    return transaction;
+    const imageTx = new this.transactionModel({
+      userId: new Types.ObjectId(userId),
+      type: 'campaign_spend',
+      tokens: cost.images,
+      status: TransactionStatus.APPROVED,
+      campaignId,
+      description: `${imageCount} image(s) generation`,
+      aiAgent: imageAgent || null,
+    });
+
+    await Promise.all([copyTx.save(), imageTx.save()]);
   }
 
   async chargeTokens(
@@ -67,6 +81,7 @@ export class TokensService {
     amount: number,
     campaignId: string,
     description: string,
+    aiAgent?: string,
   ): Promise<void> {
     await this.usersService.deductTokens(userId, amount);
     const transaction = new this.transactionModel({
@@ -75,7 +90,8 @@ export class TokensService {
       tokens: amount,
       status: TransactionStatus.APPROVED,
       campaignId,
-      adminNote: description,
+      description,
+      aiAgent: aiAgent || null,
     });
     await transaction.save();
   }

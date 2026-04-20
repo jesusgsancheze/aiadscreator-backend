@@ -128,8 +128,14 @@ export class CampaignsController {
       );
     }
 
-    // Charge tokens
-    await this.tokensService.chargeCampaign(userId, imageCount, id);
+    // Charge tokens with agent details
+    await this.tokensService.chargeCampaign(
+      userId,
+      imageCount,
+      id,
+      campaign.textAgent || 'claude',
+      campaign.imageAgent || 'gemini',
+    );
 
     // Trigger AI generation — run in background but log errors
     this.aiService.generateCampaignContent(id).catch((err) => {
@@ -160,7 +166,8 @@ export class CampaignsController {
       );
     }
 
-    await this.tokensService.chargeTokens(userId, cost, id, 'Refine copy');
+    const textAgentLabel = dto.textAgent || 'claude';
+    await this.tokensService.chargeTokens(userId, cost, id, 'Refine copy with AI', textAgentLabel);
 
     const client = campaign.clientId as any;
     const modelOverride = dto.textAgent ? TEXT_AGENT_MODELS[dto.textAgent] : undefined;
@@ -201,7 +208,8 @@ export class CampaignsController {
       );
     }
 
-    await this.tokensService.chargeTokens(userId, cost, id, 'Refine caption');
+    const captionAgentLabel = dto.textAgent || 'claude';
+    await this.tokensService.chargeTokens(userId, cost, id, 'Refine caption with AI', captionAgentLabel);
 
     const client = campaign.clientId as any;
     const modelOverride = dto.textAgent ? TEXT_AGENT_MODELS[dto.textAgent] : undefined;
@@ -246,7 +254,8 @@ export class CampaignsController {
       );
     }
 
-    await this.tokensService.chargeTokens(userId, cost, id, `Generate ${dto.count} additional image(s)`);
+    const imageAgentLabel = dto.imageAgent || 'gemini';
+    await this.tokensService.chargeTokens(userId, cost, id, `Generate ${dto.count} additional image(s)`, imageAgentLabel);
 
     const imagePrompt = campaign.imagePrompt || campaign.campaignDescription;
     const newImages: string[] = [];
