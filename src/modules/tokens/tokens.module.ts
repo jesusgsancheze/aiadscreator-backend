@@ -30,6 +30,6 @@ import { UploadModule } from '../upload/upload.module';
   ],
   controllers: [TokensController],
   providers: [TokensService, PaymentMethodsService],
-  exports: [TokensService],
+  exports: [TokensService, PaymentMethodsService],
 })
 export class TokensModule {}

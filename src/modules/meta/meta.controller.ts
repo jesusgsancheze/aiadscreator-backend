@@ -122,6 +122,10 @@ export class MetaController {
         socialMediaLink: campaign.socialMediaLink || '',
         generatedImages: campaign.generatedImages,
         selectedImage: campaign.selectedImage ?? 0,
+        verticalImages: campaign.verticalImages,
+        selectedVerticalImage: campaign.selectedVerticalImage,
+        videos: campaign.videos,
+        selectedVideo: campaign.selectedVideo,
       },
       dto,
     );

@@ -1,8 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { ClientsModule } from './modules/clients/clients.module';
@@ -14,6 +12,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { MetaModule } from './modules/meta/meta.module';
 import { TokensModule } from './modules/tokens/tokens.module';
+import { GoogleAdsModule } from './modules/google-ads/google-ads.module';
 
 @Module({
   imports: [
@@ -24,10 +23,6 @@ import { TokensModule } from './modules/tokens/tokens.module';
         uri: configService.get<string>('MONGODB_URI'),
       }),
       inject: [ConfigService],
-    }),
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'uploads'),
-      serveRoot: '/uploads',
     }),
     AuthModule,
     UsersModule,
@@ -40,6 +35,7 @@ import { TokensModule } from './modules/tokens/tokens.module';
     AdminModule,
     MetaModule,
     TokensModule,
+    GoogleAdsModule,
   ],
 })
 export class AppModule {}

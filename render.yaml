@@ -1,0 +1,89 @@
+services:
+  - type: web
+    name: aiadscreator-backend
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/main
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: NODE_ENV
+        value: production
+
+      # Comma-separated list of allowed origins (e.g.
+      # "https://app.example.com,https://www.example.com").
+      - key: FRONTEND_URL
+        sync: false
+      # Used to build links inside emails. If unset, falls back to FRONTEND_URL.
+      - key: EMAIL_URL
+        sync: false
+
+      # Mongo (Atlas or other external provider — Render does not host Mongo).
+      - key: MONGODB_URI
+        sync: false
+
+      # Auth
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+
+      # Cloudflare R2 (S3-compatible object storage for uploads).
+      - key: R2_ACCOUNT_ID
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      # Public base URL for the bucket (R2.dev subdomain or custom domain),
+      # e.g. "https://pub-xxxxx.r2.dev" or "https://cdn.example.com".
+      - key: R2_PUBLIC_URL
+        sync: false
+      - key: R2_KEY_PREFIX
+        value: uploads
+
+      # Resend (transactional email).
+      - key: RESEND_API_KEY
+        sync: false
+      # Verified sender, e.g. "AI Ads Creator <no-reply@example.com>".
+      - key: MAIL_FROM
+        sync: false
+
+      # AI providers
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+      # Google Ads OAuth + API
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_OAUTH_REDIRECT_URI
+        sync: false
+      - key: GOOGLE_ADS_DEVELOPER_TOKEN
+        sync: false
+      - key: GOOGLE_ADS_LOGIN_CUSTOMER_ID
+        sync: false
+
+      # Optional tuning
+      - key: META_HISTORY_SUGGESTIONS_ENABLED
+        value: "true"
+
+      # Seed admin (only read by src/seed.ts via `npm run seed:admin`).
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_FIRST_NAME
+        sync: false
+      - key: ADMIN_LAST_NAME
+        sync: false

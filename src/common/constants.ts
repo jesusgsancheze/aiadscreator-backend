@@ -9,6 +9,8 @@ export enum SocialMedia {
   FACEBOOK = 'facebook',
   WHATSAPP = 'whatsapp',
   GOOGLE_ADS = 'google_ads',
+  META_FULL = 'meta_full',
+  GOOGLE_PMAX = 'google_pmax',
 }
 
 export enum TextAgent {
@@ -62,6 +64,10 @@ export enum PaymentMethodType {
 export const TOKEN_COSTS = {
   COPY_AND_CAPTION: 50,
   PER_IMAGE: 40,
+  // User-provided video uploads are free. AI video generation (deferred to
+  // Tier 3.5) is priced ~5x a single image since provider cost per clip
+  // (Runway Gen-3, Veo, Luma) runs $0.30–$0.60 vs ~$0.04 per image.
+  VIDEO_AI_GENERATE: 200,
 };
 
 export const TOKEN_PACKAGES = [

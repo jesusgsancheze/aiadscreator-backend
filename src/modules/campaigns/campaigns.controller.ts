@@ -19,6 +19,8 @@ import { CampaignsService } from './campaigns.service';
 import { AiService } from '../ai/ai.service';
 import { OpenRouterService } from '../ai/openrouter.service';
 import { TokensService } from '../tokens/tokens.service';
+import { PaymentMethodsService } from '../tokens/payment-methods.service';
+import { SocialMedia } from '../../common/constants';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import { UpdatePerformanceDto } from './dto/update-performance.dto';
@@ -30,6 +32,34 @@ import { ObjectIdValidationPipe } from '../../common/pipes/object-id-validation.
 import { UploadService } from '../upload/upload.service';
 import { TOKEN_COSTS, TEXT_AGENT_MODELS, IMAGE_AGENT_MODELS } from '../../common/constants';
 
+export type PlatformAvailabilityState = 'enabled' | 'disabled' | 'hidden';
+export type PlatformAvailabilityMap = Record<SocialMedia, PlatformAvailabilityState>;
+
+const ALLOWED_AVAILABILITY_STATES: PlatformAvailabilityState[] = [
+  'enabled',
+  'disabled',
+  'hidden',
+];
+
+function buildDefaultPlatformAvailability(): PlatformAvailabilityMap {
+  return Object.values(SocialMedia).reduce((acc, sm) => {
+    acc[sm] = 'enabled';
+    return acc;
+  }, {} as PlatformAvailabilityMap);
+}
+
+function normalizePlatformAvailability(raw: unknown): PlatformAvailabilityMap {
+  const defaults = buildDefaultPlatformAvailability();
+  if (!raw || typeof raw !== 'object') return defaults;
+  for (const sm of Object.values(SocialMedia)) {
+    const v = (raw as Record<string, unknown>)[sm];
+    if (typeof v === 'string' && ALLOWED_AVAILABILITY_STATES.includes(v as PlatformAvailabilityState)) {
+      defaults[sm] = v as PlatformAvailabilityState;
+    }
+  }
+  return defaults;
+}
+
 @UseGuards(JwtAuthGuard)
 @Controller('campaigns')
 export class CampaignsController {
@@ -39,7 +69,16 @@ export class CampaignsController {
     private readonly openRouterService: OpenRouterService,
     private readonly uploadService: UploadService,
     private readonly tokensService: TokensService,
+    private readonly paymentMethodsService: PaymentMethodsService,
   ) {}
+
+  @Get('platform-availability')
+  async getPlatformAvailability(): Promise<PlatformAvailabilityMap> {
+    const setting = await this.paymentMethodsService.getAdminSettings(
+      'platformAvailability',
+    );
+    return normalizePlatformAvailability(setting?.value);
+  }
 
   @Post()
   @UseInterceptors(FilesInterceptor('productImages', 10))
@@ -105,6 +144,33 @@ export class CampaignsController {
     @Body('imageIndex') imageIndex: number,
   ) {
     return this.campaignsService.selectImage(id, userId, imageIndex);
+  }
+
+  @Patch(':id/select-vertical-image')
+  selectVerticalImage(
+    @Param('id', ObjectIdValidationPipe) id: string,
+    @CurrentUser('userId') userId: string,
+    @Body('imageIndex') imageIndex: number,
+  ) {
+    return this.campaignsService.selectVerticalImage(id, userId, imageIndex);
+  }
+
+  @Patch(':id/select-video')
+  selectVideo(
+    @Param('id', ObjectIdValidationPipe) id: string,
+    @CurrentUser('userId') userId: string,
+    @Body('videoIndex') videoIndex: number,
+  ) {
+    return this.campaignsService.selectVideo(id, userId, videoIndex);
+  }
+
+  @Patch(':id/select-landscape-image')
+  selectLandscapeImage(
+    @Param('id', ObjectIdValidationPipe) id: string,
+    @CurrentUser('userId') userId: string,
+    @Body('imageIndex') imageIndex: number,
+  ) {
+    return this.campaignsService.selectLandscapeImage(id, userId, imageIndex);
   }
 
   @Post(':id/generate')
@@ -353,6 +419,364 @@ export class CampaignsController {
     const updatedImages = [...campaign.generatedImages, imagePath];
 
     return this.campaignsService.update(id, userId, { generatedImages: updatedImages } as any);
+  }
+
+  @Post(':id/generate-vertical-images')
+  async generateVerticalImages(
+    @Param('id', ObjectIdValidationPipe) id: string,
+    @CurrentUser('userId') userId: string,
+    @Body() dto: GenerateImagesDto,
+  ) {
+    const campaign = await this.campaignsService.findById(id);
+    if (campaign.userId.toString() !== userId) {
+      throw new BadRequestException('You do not own this campaign.');
+    }
+
+    const currentCount = campaign.verticalImages?.length || 0;
+    if (currentCount + dto.count > 10) {
+      throw new BadRequestException(
+        `Cannot exceed 10 vertical images. You currently have ${currentCount} and requested ${dto.count}.`,
+      );
+    }
+
+    const cost = dto.count * TOKEN_COSTS.PER_IMAGE;
+    const balance = await this.tokensService.canAffordCampaign(userId, 0);
+    if (balance.balance < cost) {
+      throw new BadRequestException(
+        `Insufficient tokens. You need ${cost} tokens but only have ${balance.balance}.`,
+      );
+    }
+
+    const imageAgentLabel = dto.imageAgent || 'gemini';
+    await this.tokensService.chargeTokens(
+      userId,
+      cost,
+      id,
+      `Generate ${dto.count} additional vertical image(s)`,
+      imageAgentLabel,
+    );
+
+    const basePrompt =
+      campaign.verticalImagePrompt ||
+      `${campaign.imagePrompt || campaign.campaignDescription} — recomposed as a 9:16 vertical image for Stories and Reels, with the subject in the center-vertical band and clean top/bottom thirds.`;
+    const newImages: string[] = [];
+
+    const variationStyles = [
+      'Focus on the product itself. Highlight product details, features, and quality.',
+      'Create a lifestyle scene. Show the product being used in a real-life, aspirational context.',
+      'Emphasize brand identity. Create a bold, branded visual that communicates the brand values.',
+      'Use a minimalist and clean aesthetic with ample white space.',
+      'Create a vibrant, colorful composition that grabs attention on social media.',
+    ];
+
+    const promises = Array.from({ length: dto.count }, (_, i) => {
+      const style =
+        dto.instructions ||
+        variationStyles[(currentCount + i) % variationStyles.length];
+      const imageModelOverride = dto.imageAgent
+        ? IMAGE_AGENT_MODELS[dto.imageAgent]
+        : undefined;
+      return this.openRouterService.generateSingleImage(
+        basePrompt,
+        style,
+        campaign.productImages,
+        imageModelOverride,
+      );
+    });
+
+    const results = await Promise.all(promises);
+    for (const result of results) {
+      if (result) newImages.push(result);
+    }
+
+    const updatedImages = [...(campaign.verticalImages || []), ...newImages];
+    return this.campaignsService.update(id, userId, {
+      verticalImages: updatedImages,
+    } as any);
+  }
+
+  @Delete(':id/vertical-images/:imageIndex')
+  async removeVerticalImage(
+    @Param('id', ObjectIdValidationPipe) id: string,
+    @Param('imageIndex', ParseIntPipe) imageIndex: number,
+    @CurrentUser('userId') userId: string,
+  ) {
+    const campaign = await this.campaignsService.findById(id);
+    if (campaign.userId.toString() !== userId) {
+      throw new BadRequestException('You do not own this campaign.');
+    }
+
+    if (
+      imageIndex < 0 ||
+      imageIndex >= (campaign.verticalImages?.length || 0)
+    ) {
+      throw new BadRequestException('Vertical image index out of bounds.');
+    }
+
+    const updatedImages = [...(campaign.verticalImages || [])];
+    updatedImages.splice(imageIndex, 1);
+
+    let selectedVerticalImage = campaign.selectedVerticalImage;
+    if (
+      selectedVerticalImage !== null &&
+      selectedVerticalImage !== undefined
+    ) {
+      if (selectedVerticalImage === imageIndex) {
+        selectedVerticalImage = updatedImages.length > 0 ? 0 : null;
+      } else if (selectedVerticalImage > imageIndex) {
+        selectedVerticalImage = selectedVerticalImage - 1;
+      }
+    }
+
+    return this.campaignsService.update(id, userId, {
+      verticalImages: updatedImages,
+      selectedVerticalImage,
+    } as any);
+  }
+
+  @Post(':id/videos/upload')
+  @UseInterceptors(FileInterceptor('video'))
+  async uploadVideo(
+    @Param('id', ObjectIdValidationPipe) id: string,
+    @CurrentUser('userId') userId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Video file is required.');
+    }
+    if (!file.mimetype?.startsWith('video/')) {
+      throw new BadRequestException('Uploaded file must be a video.');
+    }
+
+    const campaign = await this.campaignsService.findById(id);
+    if (campaign.userId.toString() !== userId) {
+      throw new BadRequestException('You do not own this campaign.');
+    }
+
+    const currentCount = campaign.videos?.length || 0;
+    if (currentCount >= 5) {
+      throw new BadRequestException(
+        'Cannot exceed 5 videos per campaign.',
+      );
+    }
+
+    const videoPath = await this.uploadService.saveFile(file);
+    const updatedVideos = [...(campaign.videos || []), videoPath];
+    const update: Record<string, any> = { videos: updatedVideos };
+    // If this is the first video, auto-select it so Publish works immediately.
+    if (currentCount === 0) {
+      update.selectedVideo = 0;
+    }
+
+    return this.campaignsService.update(id, userId, update as any);
+  }
+
+  @Delete(':id/videos/:videoIndex')
+  async removeVideo(
+    @Param('id', ObjectIdValidationPipe) id: string,
+    @Param('videoIndex', ParseIntPipe) videoIndex: number,
+    @CurrentUser('userId') userId: string,
+  ) {
+    const campaign = await this.campaignsService.findById(id);
+    if (campaign.userId.toString() !== userId) {
+      throw new BadRequestException('You do not own this campaign.');
+    }
+
+    if (videoIndex < 0 || videoIndex >= (campaign.videos?.length || 0)) {
+      throw new BadRequestException('Video index out of bounds.');
+    }
+
+    const updatedVideos = [...(campaign.videos || [])];
+    updatedVideos.splice(videoIndex, 1);
+
+    let selectedVideo = campaign.selectedVideo;
+    if (selectedVideo !== null && selectedVideo !== undefined) {
+      if (selectedVideo === videoIndex) {
+        selectedVideo = updatedVideos.length > 0 ? 0 : null;
+      } else if (selectedVideo > videoIndex) {
+        selectedVideo = selectedVideo - 1;
+      }
+    }
+
+    return this.campaignsService.update(id, userId, {
+      videos: updatedVideos,
+      selectedVideo,
+    } as any);
+  }
+
+  @Post(':id/vertical-images/upload')
+  @UseInterceptors(FileInterceptor('image'))
+  async uploadVerticalImage(
+    @Param('id', ObjectIdValidationPipe) id: string,
+    @CurrentUser('userId') userId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Image file is required.');
+    }
+
+    const campaign = await this.campaignsService.findById(id);
+    if (campaign.userId.toString() !== userId) {
+      throw new BadRequestException('You do not own this campaign.');
+    }
+
+    const currentCount = campaign.verticalImages?.length || 0;
+    if (currentCount >= 10) {
+      throw new BadRequestException(
+        'Cannot exceed 10 vertical images per campaign.',
+      );
+    }
+
+    const imagePath = await this.uploadService.saveFile(file);
+    const updatedImages = [...(campaign.verticalImages || []), imagePath];
+
+    return this.campaignsService.update(id, userId, {
+      verticalImages: updatedImages,
+    } as any);
+  }
+
+  @Post(':id/generate-landscape-images')
+  async generateLandscapeImages(
+    @Param('id', ObjectIdValidationPipe) id: string,
+    @CurrentUser('userId') userId: string,
+    @Body() dto: GenerateImagesDto,
+  ) {
+    const campaign = await this.campaignsService.findById(id);
+    if (campaign.userId.toString() !== userId) {
+      throw new BadRequestException('You do not own this campaign.');
+    }
+
+    const currentCount = campaign.landscapeImages?.length || 0;
+    if (currentCount + dto.count > 10) {
+      throw new BadRequestException(
+        `Cannot exceed 10 landscape images. You currently have ${currentCount} and requested ${dto.count}.`,
+      );
+    }
+
+    const cost = dto.count * TOKEN_COSTS.PER_IMAGE;
+    const balance = await this.tokensService.canAffordCampaign(userId, 0);
+    if (balance.balance < cost) {
+      throw new BadRequestException(
+        `Insufficient tokens. You need ${cost} tokens but only have ${balance.balance}.`,
+      );
+    }
+
+    const imageAgentLabel = dto.imageAgent || 'gemini';
+    await this.tokensService.chargeTokens(
+      userId,
+      cost,
+      id,
+      `Generate ${dto.count} additional landscape image(s)`,
+      imageAgentLabel,
+    );
+
+    const basePrompt =
+      campaign.landscapeImagePrompt ||
+      `${campaign.imagePrompt || campaign.campaignDescription} — recomposed as a 1.91:1 landscape marketing image (1200x628) for Google Performance Max. Subject slightly left-of-center so Google's UI chrome on the right doesn't obscure it. Horizontal leading lines, clean top and bottom.`;
+    const newImages: string[] = [];
+
+    const variationStyles = [
+      'Focus on the product itself. Highlight product details, features, and quality.',
+      'Create a lifestyle scene. Show the product being used in a real-life, aspirational context.',
+      'Emphasize brand identity. Create a bold, branded visual that communicates the brand values.',
+      'Use a minimalist and clean aesthetic with ample white space.',
+      'Create a vibrant, colorful composition that grabs attention.',
+    ];
+
+    const promises = Array.from({ length: dto.count }, (_, i) => {
+      const style =
+        dto.instructions ||
+        variationStyles[(currentCount + i) % variationStyles.length];
+      const imageModelOverride = dto.imageAgent
+        ? IMAGE_AGENT_MODELS[dto.imageAgent]
+        : undefined;
+      return this.openRouterService.generateSingleImage(
+        basePrompt,
+        style,
+        campaign.productImages,
+        imageModelOverride,
+      );
+    });
+
+    const results = await Promise.all(promises);
+    for (const result of results) {
+      if (result) newImages.push(result);
+    }
+
+    const updatedImages = [...(campaign.landscapeImages || []), ...newImages];
+    return this.campaignsService.update(id, userId, {
+      landscapeImages: updatedImages,
+    } as any);
+  }
+
+  @Delete(':id/landscape-images/:imageIndex')
+  async removeLandscapeImage(
+    @Param('id', ObjectIdValidationPipe) id: string,
+    @Param('imageIndex', ParseIntPipe) imageIndex: number,
+    @CurrentUser('userId') userId: string,
+  ) {
+    const campaign = await this.campaignsService.findById(id);
+    if (campaign.userId.toString() !== userId) {
+      throw new BadRequestException('You do not own this campaign.');
+    }
+
+    if (
+      imageIndex < 0 ||
+      imageIndex >= (campaign.landscapeImages?.length || 0)
+    ) {
+      throw new BadRequestException('Landscape image index out of bounds.');
+    }
+
+    const updatedImages = [...(campaign.landscapeImages || [])];
+    updatedImages.splice(imageIndex, 1);
+
+    let selectedLandscapeImage = campaign.selectedLandscapeImage;
+    if (
+      selectedLandscapeImage !== null &&
+      selectedLandscapeImage !== undefined
+    ) {
+      if (selectedLandscapeImage === imageIndex) {
+        selectedLandscapeImage = updatedImages.length > 0 ? 0 : null;
+      } else if (selectedLandscapeImage > imageIndex) {
+        selectedLandscapeImage = selectedLandscapeImage - 1;
+      }
+    }
+
+    return this.campaignsService.update(id, userId, {
+      landscapeImages: updatedImages,
+      selectedLandscapeImage,
+    } as any);
+  }
+
+  @Post(':id/landscape-images/upload')
+  @UseInterceptors(FileInterceptor('image'))
+  async uploadLandscapeImage(
+    @Param('id', ObjectIdValidationPipe) id: string,
+    @CurrentUser('userId') userId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('Image file is required.');
+    }
+
+    const campaign = await this.campaignsService.findById(id);
+    if (campaign.userId.toString() !== userId) {
+      throw new BadRequestException('You do not own this campaign.');
+    }
+
+    const currentCount = campaign.landscapeImages?.length || 0;
+    if (currentCount >= 10) {
+      throw new BadRequestException(
+        'Cannot exceed 10 landscape images per campaign.',
+      );
+    }
+
+    const imagePath = await this.uploadService.saveFile(file);
+    const updatedImages = [...(campaign.landscapeImages || []), imagePath];
+
+    return this.campaignsService.update(id, userId, {
+      landscapeImages: updatedImages,
+    } as any);
   }
 
   @Delete(':id')

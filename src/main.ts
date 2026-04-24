@@ -1,20 +1,29 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+function parseOrigins(raw: string | undefined): string[] {
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
+async function bootstrap() {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  app.set('trust proxy', 1);
   app.setGlobalPrefix('api');
 
-  app.enableCors({
-    origin: [
-      process.env.FRONTEND_URL || 'http://localhost:4000',
-      'http://192.168.0.108:4000',          // your Mac's LAN IP
-      'http://Jesuss-Mac-mini.local:4000',
-      'http://jesuss-mac-mini.local:4000',
+  const origins = parseOrigins(process.env.FRONTEND_URL);
+  if (origins.length === 0) {
+    origins.push('http://localhost:4000');
+  }
 
-    ],
+  app.enableCors({
+    origin: origins,
     credentials: true,
   });
 
@@ -26,7 +35,8 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(process.env.PORT ?? 4001);
-  console.log(`Server running on http://localhost:${process.env.PORT ?? 4001}`);
+  const port = Number(process.env.PORT) || 4001;
+  await app.listen(port, '0.0.0.0');
+  console.log(`Server running on port ${port}`);
 }
 bootstrap();

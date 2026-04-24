@@ -9,6 +9,7 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ClientsService } from './clients.service';
@@ -34,10 +35,14 @@ export class ClientsController {
     @CurrentUser('userId') userId: string,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    let logoPath: string | null = null;
-    if (file) {
-      logoPath = await this.uploadService.saveFile(file);
+    // Logo is required on create — Google PMax asset groups require at least
+    // one logo, and it's reused as a brand asset across other surfaces too.
+    // Update keeps logo optional so existing clients without a logo don't
+    // become un-editable.
+    if (!file) {
+      throw new BadRequestException('A brand logo is required to create a client.');
     }
+    const logoPath = await this.uploadService.saveFile(file);
     return this.clientsService.create(dto, userId, logoPath);
   }
 

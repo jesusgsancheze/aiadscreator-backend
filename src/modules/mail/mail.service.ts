@@ -1,23 +1,35 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import * as Handlebars from 'handlebars';
 
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private transporter: nodemailer.Transporter;
+  private readonly resend: Resend;
+  private readonly from: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: this.configService.get<string>('MAIL_USER'),
-        pass: this.configService.get<string>('MAIL_PASS'),
-      },
+    const apiKey = this.configService.get<string>('RESEND_API_KEY');
+    if (!apiKey) {
+      throw new Error('Missing required env var: RESEND_API_KEY');
+    }
+    this.resend = new Resend(apiKey);
+    this.from =
+      this.configService.get<string>('MAIL_FROM') ||
+      'AI Ads Creator <onboarding@resend.dev>';
+  }
+
+  private async send(to: string | string[], subject: string, html: string): Promise<void> {
+    const { error } = await this.resend.emails.send({
+      from: this.from,
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      html,
     });
+    if (error) {
+      throw new Error(`Resend error: ${error.message ?? JSON.stringify(error)}`);
+    }
   }
 
   async sendVerificationEmail(
@@ -25,9 +37,10 @@ export class MailService {
     firstName: string,
     token: string,
   ): Promise<void> {
-    const emailUrl = this.configService.get<string>('EMAIL_URL')
-      || this.configService.get<string>('FRONTEND_URL')
-      || 'http://localhost:4000';
+    const emailUrl =
+      this.configService.get<string>('EMAIL_URL') ||
+      this.configService.get<string>('FRONTEND_URL') ||
+      'http://localhost:4000';
     const verificationLink = `${emailUrl}/verify-email?token=${token}`;
 
     const templateSource = `
@@ -71,15 +84,10 @@ export class MailService {
     const html = template({ firstName, verificationLink });
 
     try {
-      await this.transporter.sendMail({
-        from: `"AI Ads Creator" <${this.configService.get<string>('MAIL_USER')}>`,
-        to: email,
-        subject: 'Verify your email - AI Ads Creator',
-        html,
-      });
+      await this.send(email, 'Verify your email - AI Ads Creator', html);
       this.logger.log(`Verification email sent to ${email}`);
     } catch (error) {
-      this.logger.error(`Failed to send verification email to ${email}`, error);
+      this.logger.error(`Failed to send verification email to ${email}`, error as Error);
       throw error;
     }
   }
@@ -131,15 +139,10 @@ export class MailService {
     const html = template({ userName, userEmail, amount, tokens, paymentMethod });
 
     try {
-      await this.transporter.sendMail({
-        from: `"AI Ads Creator" <${this.configService.get<string>('MAIL_USER')}>`,
-        to: adminEmails.join(', '),
-        subject: `New payment request from ${userName}`,
-        html,
-      });
+      await this.send(adminEmails, `New payment request from ${userName}`, html);
       this.logger.log(`Payment notification sent to ${adminEmails.join(', ')}`);
     } catch (error) {
-      this.logger.error('Failed to send payment notification email', error);
+      this.logger.error('Failed to send payment notification email', error as Error);
       throw error;
     }
   }
@@ -205,15 +208,10 @@ export class MailService {
     });
 
     try {
-      await this.transporter.sendMail({
-        from: `"AI Ads Creator" <${this.configService.get<string>('MAIL_USER')}>`,
-        to: userEmail,
-        subject: `Payment ${statusText} - AI Ads Creator`,
-        html,
-      });
+      await this.send(userEmail, `Payment ${statusText} - AI Ads Creator`, html);
       this.logger.log(`Payment result email sent to ${userEmail}`);
     } catch (error) {
-      this.logger.error(`Failed to send payment result email to ${userEmail}`, error);
+      this.logger.error(`Failed to send payment result email to ${userEmail}`, error as Error);
       throw error;
     }
   }

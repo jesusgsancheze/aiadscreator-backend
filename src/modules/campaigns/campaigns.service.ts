@@ -127,6 +127,51 @@ export class CampaignsService {
     return updated!;
   }
 
+  async selectVerticalImage(
+    id: string,
+    userId: string,
+    imageIndex: number,
+  ): Promise<CampaignDocument> {
+    const campaign = await this.findById(id);
+    this.checkOwnership(campaign, userId);
+
+    const updated = await this.campaignModel
+      .findByIdAndUpdate(id, { selectedVerticalImage: imageIndex }, { new: true })
+      .populate('clientId', 'name logo description')
+      .exec();
+    return updated!;
+  }
+
+  async selectVideo(
+    id: string,
+    userId: string,
+    videoIndex: number,
+  ): Promise<CampaignDocument> {
+    const campaign = await this.findById(id);
+    this.checkOwnership(campaign, userId);
+
+    const updated = await this.campaignModel
+      .findByIdAndUpdate(id, { selectedVideo: videoIndex }, { new: true })
+      .populate('clientId', 'name logo description')
+      .exec();
+    return updated!;
+  }
+
+  async selectLandscapeImage(
+    id: string,
+    userId: string,
+    imageIndex: number,
+  ): Promise<CampaignDocument> {
+    const campaign = await this.findById(id);
+    this.checkOwnership(campaign, userId);
+
+    const updated = await this.campaignModel
+      .findByIdAndUpdate(id, { selectedLandscapeImage: imageIndex }, { new: true })
+      .populate('clientId', 'name logo description')
+      .exec();
+    return updated!;
+  }
+
   async delete(id: string, userId: string): Promise<void> {
     const campaign = await this.findById(id);
     this.checkOwnership(campaign, userId);
