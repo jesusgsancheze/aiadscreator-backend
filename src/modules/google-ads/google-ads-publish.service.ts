@@ -150,7 +150,7 @@ export class GoogleAdsPublishService {
     const cid = connection.customerId;
 
     // Resolve effective values: DTO overrides > suggestion > sensible defaults.
-    const name = (dto.name || campaign.title || 'AI Ads Creator PMax').slice(0, 255);
+    const name = (dto.name || campaign.title || 'ContenidIA PMax').slice(0, 255);
     const dailyBudget = dto.dailyBudget ?? suggestion?.dailyBudget ?? 20;
     const biddingStrategy =
       dto.biddingStrategy ?? suggestion?.biddingStrategy ?? 'MAXIMIZE_CONVERSIONS';

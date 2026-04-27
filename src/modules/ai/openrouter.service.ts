@@ -46,7 +46,7 @@ export class OpenRouterService {
       Authorization: `Bearer ${this.apiKey}`,
       'Content-Type': 'application/json',
       'HTTP-Referer': 'https://aiadscreator.com',
-      'X-Title': 'AI Ads Creator',
+      'X-Title': 'ContenidIA',
     };
   }
 

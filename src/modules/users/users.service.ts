@@ -42,6 +42,10 @@ export class UsersService {
     return this.userModel.findOne({ emailVerificationToken: token }).exec();
   }
 
+  async findByPasswordResetToken(token: string): Promise<UserDocument | null> {
+    return this.userModel.findOne({ passwordResetToken: token }).exec();
+  }
+
   async update(userId: string, dto: UpdateUserDto): Promise<UserDocument | null> {
     return this.userModel
       .findByIdAndUpdate(userId, dto, { new: true })

@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   ForbiddenException,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -16,6 +17,8 @@ import { Language } from '../../common/constants';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
@@ -136,6 +139,66 @@ export class AuthService {
     );
 
     return { message: 'Verification email sent.' };
+  }
+
+  async forgotPassword(email: string) {
+    const successMessage =
+      'If an account exists for that email, a password reset link has been sent.';
+
+    // Fire-and-forget so response time doesn't leak whether the account exists.
+    void this.dispatchPasswordReset(email);
+
+    return { message: successMessage };
+  }
+
+  private async dispatchPasswordReset(email: string): Promise<void> {
+    try {
+      const user = await this.usersService.findByEmail(email);
+      if (!user) return;
+
+      const resetToken = uuidv4();
+      const resetExpires = new Date(Date.now() + 60 * 60 * 1000);
+
+      user.passwordResetToken = resetToken;
+      user.passwordResetExpires = resetExpires;
+      await user.save();
+
+      await this.mailService.sendPasswordResetEmail(
+        user.email,
+        user.firstName,
+        resetToken,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Password reset dispatch failed for ${email}`,
+        error as Error,
+      );
+    }
+  }
+
+  async resetPassword(token: string, password: string) {
+    const user = await this.usersService.findByPasswordResetToken(token);
+    if (!user) {
+      throw new BadRequestException(
+        'Invalid or expired password reset link. Please request a new one.',
+      );
+    }
+
+    if (
+      user.passwordResetExpires &&
+      user.passwordResetExpires < new Date()
+    ) {
+      throw new BadRequestException(
+        'Password reset link has expired. Please request a new one.',
+      );
+    }
+
+    user.password = await bcrypt.hash(password, 12);
+    user.passwordResetToken = null;
+    user.passwordResetExpires = null;
+    await user.save();
+
+    return { message: 'Password reset successfully. You can now log in.' };
   }
 
   async getProfile(userId: string) {

@@ -17,7 +17,7 @@ export class MailService {
     this.resend = new Resend(apiKey);
     this.from =
       this.configService.get<string>('MAIL_FROM') ||
-      'AI Ads Creator <onboarding@resend.dev>';
+      'ContenidIA <onboarding@resend.dev>';
   }
 
   private async send(to: string | string[], subject: string, html: string): Promise<void> {
@@ -60,11 +60,11 @@ export class MailService {
       <body>
         <div class="container">
           <div class="header">
-            <h1>AI Ads Creator</h1>
+            <h1>ContenidIA</h1>
           </div>
           <div class="content">
             <h2>Welcome, {{firstName}}!</h2>
-            <p>Thank you for registering with AI Ads Creator. Please verify your email address by clicking the button below:</p>
+            <p>Thank you for registering with ContenidIA. Please verify your email address by clicking the button below:</p>
             <div style="text-align: center;">
               <a href="{{verificationLink}}" class="button">Verify Email</a>
             </div>
@@ -74,6 +74,7 @@ export class MailService {
           </div>
           <div class="footer">
             <p>If you did not create an account, please ignore this email.</p>
+            <p>Powered by <a href="https://instagram.com/lasdelcontenido_" style="color:#4F46E5;text-decoration:none;">@lasdelcontenido_</a></p>
           </div>
         </div>
       </body>
@@ -84,10 +85,70 @@ export class MailService {
     const html = template({ firstName, verificationLink });
 
     try {
-      await this.send(email, 'Verify your email - AI Ads Creator', html);
+      await this.send(email, 'Verify your email - ContenidIA', html);
       this.logger.log(`Verification email sent to ${email}`);
     } catch (error) {
       this.logger.error(`Failed to send verification email to ${email}`, error as Error);
+      throw error;
+    }
+  }
+
+  async sendPasswordResetEmail(
+    email: string,
+    firstName: string,
+    token: string,
+  ): Promise<void> {
+    const emailUrl =
+      this.configService.get<string>('EMAIL_URL') ||
+      this.configService.get<string>('FRONTEND_URL') ||
+      'http://localhost:4000';
+    const resetLink = `${emailUrl}/reset-password?token=${token}`;
+
+    const templateSource = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+          .button { display: inline-block; background: #4F46E5; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>ContenidIA</h1>
+          </div>
+          <div class="content">
+            <h2>Hi {{firstName}},</h2>
+            <p>We received a request to reset the password for your ContenidIA account. Click the button below to choose a new one:</p>
+            <div style="text-align: center;">
+              <a href="{{resetLink}}" class="button">Reset password</a>
+            </div>
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; font-size: 14px; color: #4F46E5;">{{resetLink}}</p>
+            <p>This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email — your password will stay the same.</p>
+          </div>
+          <div class="footer">
+            <p>Powered by <a href="https://instagram.com/lasdelcontenido_" style="color:#4F46E5;text-decoration:none;">@lasdelcontenido_</a></p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const template = Handlebars.compile(templateSource);
+    const html = template({ firstName, resetLink });
+
+    try {
+      await this.send(email, 'Reset your password - ContenidIA', html);
+      this.logger.log(`Password reset email sent to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send password reset email to ${email}`, error as Error);
       throw error;
     }
   }
@@ -128,7 +189,8 @@ export class MailService {
             <p>Please log in to the admin panel to review this transaction.</p>
           </div>
           <div class="footer">
-            <p>AI Ads Creator - Admin Notification</p>
+            <p>ContenidIA - Admin Notification</p>
+            <p>Powered by <a href="https://instagram.com/lasdelcontenido_" style="color:#F59E0B;text-decoration:none;">@lasdelcontenido_</a></p>
           </div>
         </div>
       </body>
@@ -190,7 +252,8 @@ export class MailService {
             {{/if}}
           </div>
           <div class="footer">
-            <p>AI Ads Creator</p>
+            <p>ContenidIA</p>
+            <p>Powered by <a href="https://instagram.com/lasdelcontenido_" style="color:#4F46E5;text-decoration:none;">@lasdelcontenido_</a></p>
           </div>
         </div>
       </body>
@@ -208,7 +271,7 @@ export class MailService {
     });
 
     try {
-      await this.send(userEmail, `Payment ${statusText} - AI Ads Creator`, html);
+      await this.send(userEmail, `Payment ${statusText} - ContenidIA`, html);
       this.logger.log(`Payment result email sent to ${userEmail}`);
     } catch (error) {
       this.logger.error(`Failed to send payment result email to ${userEmail}`, error as Error);
