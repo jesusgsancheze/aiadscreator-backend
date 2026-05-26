@@ -8,12 +8,14 @@ import { Client, ClientSchema } from '../clients/schemas/client.schema';
 import { User, UserSchema } from '../users/schemas/user.schema';
 import { MetaModule } from '../meta/meta.module';
 import { GoogleAdsModule } from '../google-ads/google-ads.module';
+import { UploadModule } from '../upload/upload.module';
 
 @Module({
   imports: [
     ConfigModule,
     MetaModule,
     GoogleAdsModule,
+    UploadModule,
     MongooseModule.forFeature([
       { name: Campaign.name, schema: CampaignSchema },
       { name: Client.name, schema: ClientSchema },

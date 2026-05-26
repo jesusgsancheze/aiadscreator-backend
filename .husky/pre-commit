@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# Run tests + coverage. Fails the commit if coverage drops below the floor
+# defined in package.json's jest.coverageThreshold.
+npm run test:cov --silent

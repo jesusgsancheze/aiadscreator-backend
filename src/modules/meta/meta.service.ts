@@ -69,6 +69,65 @@ export class MetaService {
   }
 
   /**
+   * Resolves the Instagram Business Account ID linked to a Facebook Page.
+   *
+   * Meta's Business Settings UI rarely exposes this numeric ID, so instead of
+   * asking the user to hunt for it we derive it from the page they already
+   * provided. The returned ID (format 1784140…) is exactly what Meta expects as
+   * `instagram_actor_id` when publishing creatives to Instagram placements.
+   *
+   * Returns null (rather than throwing) when no IG account is linked or the
+   * token lacks `instagram_basic` — the IG account is optional for connections
+   * that only publish to Facebook.
+   */
+  async lookupInstagramAccount(
+    accessToken: string,
+    pageId: string,
+  ): Promise<{ id: string; username?: string } | null> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/${pageId}`, {
+        params: {
+          fields:
+            'instagram_business_account{id,username},connected_instagram_account{id,username}',
+          access_token: accessToken,
+        },
+      });
+
+      const ig =
+        response.data?.instagram_business_account ||
+        response.data?.connected_instagram_account;
+
+      if (ig?.id) {
+        this.logger.log(
+          `Resolved Instagram account ${ig.id} (@${ig.username}) for page ${pageId}`,
+        );
+        return { id: ig.id, username: ig.username };
+      }
+
+      this.logger.warn(
+        `No Instagram business account linked to page ${pageId}. ` +
+          `Ensure the IG account is a Business/Creator account connected to this page.`,
+      );
+      return null;
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch Instagram account for page ${pageId}: ${
+          error.response?.data?.error?.message || error.message
+        }`,
+      );
+      return null;
+    }
+  }
+
+  async getInstagramAccountId(
+    accessToken: string,
+    pageId: string,
+  ): Promise<string | null> {
+    const account = await this.lookupInstagramAccount(accessToken, pageId);
+    return account?.id || null;
+  }
+
+  /**
    * Uploads a video to Meta's ad account video library via /act_X/advideos.
    * Meta processes videos asynchronously, so after upload we poll the video
    * status for up to ~20s to catch obvious failures early. If processing is

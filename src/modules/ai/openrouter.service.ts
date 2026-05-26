@@ -11,9 +11,9 @@ import {
   GoogleAdsCreativeResult,
   getGoogleAdsGenerationPrompt,
 } from './prompts/google-ads-generation.prompt';
-import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 import * as path from 'path';
+import { UploadService } from '../upload/upload.service';
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
@@ -23,9 +23,11 @@ export class OpenRouterService {
   private readonly apiKey: string;
   private readonly textModel: string;
   private readonly imageModel: string;
-  private readonly uploadsDir = path.join(process.cwd(), 'uploads');
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly uploadService: UploadService,
+  ) {
     this.apiKey = this.configService.get<string>('OPENROUTER_API_KEY')!;
     this.textModel = this.configService.get<string>(
       'OPENROUTER_TEXT_MODEL',
@@ -35,10 +37,6 @@ export class OpenRouterService {
       'OPENROUTER_IMAGE_MODEL',
       'google/gemini-2.5-flash-image',
     );
-
-    if (!fs.existsSync(this.uploadsDir)) {
-      fs.mkdirSync(this.uploadsDir, { recursive: true });
-    }
   }
 
   private get headers() {
@@ -479,7 +477,7 @@ export class OpenRouterService {
     try {
       const fullPrompt = `Generate a high-quality, professional advertising image based on this description:\n\n${imagePrompt}\n\nVariation style: ${variationInstructions}`;
 
-      const productImageParts = this.readProductImages(productImagePaths);
+      const productImageParts = await this.readProductImages(productImagePaths);
       const userContent: any[] = [{ type: 'text', text: fullPrompt }, ...productImageParts];
 
       const response = await axios.post(
@@ -526,10 +524,11 @@ export class OpenRouterService {
           /data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)/,
         );
         if (base64Match) {
-          const filename = `${uuidv4()}-single.png`;
-          const filePath = path.join(this.uploadsDir, filename);
-          fs.writeFileSync(filePath, Buffer.from(base64Match[2], 'base64'));
-          return `uploads/${filename}`;
+          return this.uploadService.saveBuffer(
+            Buffer.from(base64Match[2], 'base64'),
+            '.png',
+            'image/png',
+          );
         }
       }
 
@@ -571,7 +570,7 @@ export class OpenRouterService {
     }));
 
     // Read all product images for reference context
-    const productImageParts = this.readProductImages(productImagePaths);
+    const productImageParts = await this.readProductImages(productImagePaths);
     const model = imageModelOverride || this.imageModel;
 
     const promises = variations.map(async (variation) => {
@@ -627,10 +626,11 @@ export class OpenRouterService {
             /data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)/,
           );
           if (base64Match) {
-            const filename = `${uuidv4()}-${variation.name}.png`;
-            const filePath = path.join(this.uploadsDir, filename);
-            fs.writeFileSync(filePath, Buffer.from(base64Match[2], 'base64'));
-            return `uploads/${filename}`;
+            return this.uploadService.saveBuffer(
+              Buffer.from(base64Match[2], 'base64'),
+              '.png',
+              'image/png',
+            );
           }
         }
 
@@ -653,41 +653,72 @@ export class OpenRouterService {
     return generatedPaths;
   }
 
-  private readProductImages(productImagePaths: string[]): any[] {
+  private async readProductImages(productImagePaths: string[]): Promise<any[]> {
     const parts: any[] = [];
     for (const imagePath of productImagePaths) {
-      const absolutePath = path.join(process.cwd(), imagePath);
-      if (fs.existsSync(absolutePath)) {
-        const imageBuffer = fs.readFileSync(absolutePath);
-        const base64 = imageBuffer.toString('base64');
-        const ext = path.extname(absolutePath).toLowerCase();
-        let mime = 'image/jpeg';
-        if (ext === '.png') mime = 'image/png';
-        else if (ext === '.webp') mime = 'image/webp';
+      try {
+        let buffer: Buffer;
+        let mime: string;
+
+        if (/^https?:\/\//i.test(imagePath)) {
+          // Product images are stored in R2 as public URLs — fetch over HTTP.
+          const response = await axios.get(imagePath, {
+            responseType: 'arraybuffer',
+          });
+          buffer = Buffer.from(response.data);
+          mime = response.headers['content-type'] || 'image/jpeg';
+        } else {
+          // Backward-compat: legacy relative paths on the local filesystem.
+          const absolutePath = path.join(process.cwd(), imagePath);
+          if (!fs.existsSync(absolutePath)) {
+            this.logger.warn(`Product image not found: ${imagePath}`);
+            continue;
+          }
+          buffer = fs.readFileSync(absolutePath);
+          const ext = path.extname(absolutePath).toLowerCase();
+          mime =
+            ext === '.png'
+              ? 'image/png'
+              : ext === '.webp'
+                ? 'image/webp'
+                : 'image/jpeg';
+        }
+
         parts.push({
           type: 'image_url',
-          image_url: { url: `data:${mime};base64,${base64}` },
+          image_url: { url: `data:${mime};base64,${buffer.toString('base64')}` },
         });
+      } catch (error: any) {
+        this.logger.warn(
+          `Failed to read product image ${imagePath}: ${error?.message}`,
+        );
       }
     }
     return parts;
   }
 
-  private async saveImageFromDataUrl(url: string, variationName: string): Promise<string> {
-    const filename = `${uuidv4()}-${variationName}.png`;
-    const filePath = path.join(this.uploadsDir, filename);
-
+  private async saveImageFromDataUrl(
+    url: string,
+    _variationName: string,
+  ): Promise<string> {
     if (url.startsWith('data:')) {
-      const base64Match = url.match(/data:image\/[^;]+;base64,(.+)/);
+      const base64Match = url.match(/data:image\/([^;]+);base64,(.+)/);
       if (base64Match) {
-        fs.writeFileSync(filePath, Buffer.from(base64Match[1], 'base64'));
-        return `uploads/${filename}`;
+        return this.uploadService.saveBuffer(
+          Buffer.from(base64Match[2], 'base64'),
+          '.png',
+          'image/png',
+        );
       }
     }
 
-    // External URL — download it
+    // External URL — download it, then store in R2.
     const response = await axios.get(url, { responseType: 'arraybuffer' });
-    fs.writeFileSync(filePath, response.data);
-    return `uploads/${filename}`;
+    const contentType = response.headers['content-type'] || 'image/png';
+    return this.uploadService.saveBuffer(
+      Buffer.from(response.data),
+      '.png',
+      contentType,
+    );
   }
 }

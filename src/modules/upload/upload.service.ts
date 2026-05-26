@@ -30,15 +30,29 @@ export class UploadService {
 
   async saveFile(file: Express.Multer.File): Promise<string> {
     const ext = path.extname(file.originalname).toLowerCase();
-    const key = `${this.keyPrefix}/${uuidv4()}${ext}`;
+    return this.saveBuffer(file.buffer, ext, file.mimetype);
+  }
+
+  /**
+   * Uploads a raw buffer (e.g. an AI-generated image) to R2 and returns its
+   * public URL. Used by the AI services, which receive image bytes rather than
+   * a multipart upload.
+   */
+  async saveBuffer(
+    buffer: Buffer,
+    ext: string,
+    contentType: string,
+  ): Promise<string> {
+    const normalizedExt = ext.startsWith('.') ? ext : `.${ext}`;
+    const key = `${this.keyPrefix}/${uuidv4()}${normalizedExt}`;
 
     try {
       await this.s3.send(
         new PutObjectCommand({
           Bucket: this.bucket,
           Key: key,
-          Body: file.buffer,
-          ContentType: file.mimetype,
+          Body: buffer,
+          ContentType: contentType,
           CacheControl: 'public, max-age=31536000, immutable',
         }),
       );

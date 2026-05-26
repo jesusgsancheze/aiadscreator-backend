@@ -9,6 +9,7 @@ import {
   UseGuards,
   Query,
   Logger,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -17,6 +18,7 @@ import { MetaService } from './meta.service';
 import { CreateMetaConnectionDto } from './dto/create-meta-connection.dto';
 import { UpdateMetaConnectionDto } from './dto/update-meta-connection.dto';
 import { PublishCampaignDto } from './dto/publish-campaign.dto';
+import { LookupInstagramDto } from './dto/lookup-instagram.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Campaign, CampaignDocument } from '../campaigns/schemas/campaign.schema';
@@ -42,6 +44,22 @@ export class MetaController {
     @Body() dto: CreateMetaConnectionDto,
   ) {
     return this.metaConnectionService.create(userId, dto);
+  }
+
+  @Post('instagram-account/lookup')
+  async lookupInstagramAccount(@Body() dto: LookupInstagramDto) {
+    const account = await this.metaService.lookupInstagramAccount(
+      dto.accessToken,
+      dto.pageId,
+    );
+    if (!account) {
+      throw new BadRequestException(
+        'No Instagram Business/Creator account is connected to this Page. ' +
+          'Link your Instagram account to the Page in Meta Business Settings, ' +
+          'and ensure the access token includes the instagram_basic permission.',
+      );
+    }
+    return account;
   }
 
   @Get('connections')

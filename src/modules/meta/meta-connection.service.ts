@@ -40,6 +40,17 @@ export class MetaConnectionService {
       );
     }
 
+    // If the user didn't supply an Instagram account ID, try to derive it from
+    // the page they provided. Meta's UI rarely shows this numeric ID, so this
+    // saves them from having to find it manually.
+    let instagramAccountId = dto.instagramAccountId || null;
+    if (!instagramAccountId && dto.pageId) {
+      instagramAccountId = await this.metaService.getInstagramAccountId(
+        dto.accessToken,
+        dto.pageId,
+      );
+    }
+
     try {
       const connection = await this.metaConnectionModel.create({
         userId: new Types.ObjectId(userId),
@@ -47,7 +58,7 @@ export class MetaConnectionService {
         accessToken: dto.accessToken,
         adAccountId: dto.adAccountId,
         pageId: dto.pageId,
-        instagramAccountId: dto.instagramAccountId || null,
+        instagramAccountId,
         isActive: true,
         lastVerified: new Date(),
       });
@@ -124,6 +135,17 @@ export class MetaConnectionService {
     }
 
     Object.assign(connection, dto);
+
+    // Backfill the Instagram account ID from the page when it's still missing
+    // (e.g. older connections, or the user left the field blank again).
+    if (!connection.instagramAccountId && connection.pageId) {
+      connection.instagramAccountId =
+        await this.metaService.getInstagramAccountId(
+          connection.accessToken,
+          connection.pageId,
+        );
+    }
+
     await connection.save();
 
     this.logger.log(`Meta connection ${id} updated`);
